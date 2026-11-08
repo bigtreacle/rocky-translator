@@ -631,6 +631,19 @@ test of the core split and I2S buffering).
 **M2 translator screen.** Full UI; spectrum follows synth; typewriter after
 playback; layout photographed at arm's length.
 
+Status 2026-11-08: built and running on the board. `src/ui/translator_screen.cpp`
+(status strip with the corner insets, custom-drawn 24-bar spectrum with glow,
+note line, typewriter with blinking cursor and 3-line scroll, burn-in shift
+every 3 min), `src/brain/brain.cpp` (the §8 state machine: listening,
+receiving, note shown, speaking, translating; exchanges via `next`; whistle
+mirror reply) and `src/phrases/phrase_bank.cpp` (ten built-in placeholder
+phrases, the JSON loader is M3). Chords are timed by a stub in the brain that
+also produces the synth-driven spectrum peaks and note names; M1 replaces the
+timing with the real synth and keeps the rest. Mic and IMU events are
+simulated over serial (`tap`, `speech`, `whistle 72`, `pickup`, `shake`).
+Verified over serial: every state transition fires in order. Layout still to
+be judged by eye.
+
 **M3 phrases.** `phrases.json` on LittleFS; exchange cycles; editing the JSON
 and re-uploading the filesystem changes behaviour with no code change.
 

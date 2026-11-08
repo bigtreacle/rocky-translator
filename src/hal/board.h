@@ -1,0 +1,35 @@
+// Entry point to the hardware layer. Exactly one src/boards/<name>/ is compiled
+// per PlatformIO environment and provides these.
+#pragma once
+#include <stdint.h>
+
+#include "audio_in.h"
+#include "audio_out.h"
+#include "display.h"
+#include "motion.h"
+#include "power.h"
+#include "touch.h"
+
+namespace hal {
+
+struct BoardInfo {
+  const char *name = "";
+  const char *revision = "";  // e.g. "V2 (CO5300 + CST820)"
+  int sda = -1, scl = -1;     // the I2C pins that answered
+  uint8_t i2cFound[16] = {};
+  int i2cFoundCount = 0;
+};
+
+// Brings up buses, power rails and reset lines, and detects the board revision.
+// Call once before any device's begin(). Returns false if the board does not
+// answer at all (no I2C devices).
+bool boardBegin(BoardInfo &info);
+
+Display &display();
+Touch &touch();
+AudioOut &audioOut();
+AudioIn &audioIn();
+Motion &motion();
+Power &power();
+
+}  // namespace hal

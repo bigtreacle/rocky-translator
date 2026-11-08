@@ -1,0 +1,8 @@
+.pio/
+.vscode/
+*.swp
+.DS_Store
+# Waveshare demo code kept locally as the pin/init reference, not ours to publish
+vendor/
+# Planning notes stay local, as in planespotter
+rocky-translator-brief.md

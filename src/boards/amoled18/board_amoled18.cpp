@@ -122,6 +122,13 @@ class Amoled18Display : public hal::Display {
 
 // ------------------------------------------------------------------ Touch
 //
+// The CST820's INT line pulses low for each report rather than staying low for
+// the whole touch, so a level check at poll time misses reports. An ISR latches
+// the falling edge; the poll reads the chip when a report arrived or a finger
+// was down last time.
+volatile bool g_touchReport = false;
+void IRAM_ATTR touchIsr() { g_touchReport = true; }
+
 // Both controllers share the FocalTech-style register layout: finger count,
 // then XH (bits 3:0), XL, YH (bits 3:0), YL. Writing our own reader for each
 // keeps the repo free of the GPL driver Waveshare bundles.
@@ -154,6 +161,7 @@ class Amoled18Touch : public hal::Touch {
       return false;
     }
     pinMode(pins::TP_INT, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(pins::TP_INT), touchIsr, FALLING);
     return true;
   }
   hal::TouchPoint read() override {
@@ -162,7 +170,8 @@ class Amoled18Touch : public hal::Touch {
     // INT is low while a finger is down. Skip the I2C transaction when it is
     // high and nothing was pressed last time; this is how the datasheet expects
     // the chip to be driven and avoids hammering it between touches.
-    if (useInt_ && digitalRead(pins::TP_INT) == HIGH && !lastPressed_) return p;
+    if (useInt_ && !g_touchReport && !lastPressed_ && digitalRead(pins::TP_INT) == HIGH) return p;
+    g_touchReport = false;
     uint8_t r[5];
     if (!i2cReadRegs(addr_, firstReg_, r, sizeof r)) return p;
     uint8_t fingers = r[0] & 0x0F;

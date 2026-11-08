@@ -6,7 +6,7 @@ ESP32-S3-Touch-AMOLED-1.8. `rocky-translator-brief.md` is the brief,
 screen and M3 phrases from JSON done** (tested on a V2 board on 2026-11-08; see
 the status notes in DESIGN.md §14). Sound (M1) works: a short press of the
 BOOT side button toggles the speaker, the setting is remembered, and the
-volume defaults to 40 (`vol 25` over serial to change it; it is saved).
+volume defaults to 60 (`vol 45` over serial to change it; it is saved).
 
 ## Build and flash
 

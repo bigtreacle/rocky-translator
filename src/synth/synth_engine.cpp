@@ -25,7 +25,7 @@ volatile bool g_bassCut = true;
 volatile bool g_playing = false;
 volatile uint32_t g_blocks = 0;
 volatile float g_peak = 0;
-uint8_t g_volume = 40;  // 85 was uncomfortably loud on the V2 speaker
+uint8_t g_volume = 60;  // 85 was too loud on the V2 speaker, 40 too quiet
 
 struct Cmd {
   bool on;
@@ -181,7 +181,7 @@ bool begin(hal::AudioOut &out, uint32_t sampleRate) {
   Preferences p;
   p.begin("rocky", true);
   g_muted = p.getBool("muted", true);  // quiet until asked, and remembered
-  g_volume = p.getUChar("volume", 40);
+  g_volume = p.getUChar("volume", 60);
   g_bassCut = p.getBool("bassCut", true);
   p.end();
   if (!out.begin(sampleRate)) {

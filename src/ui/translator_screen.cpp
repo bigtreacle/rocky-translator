@@ -95,7 +95,9 @@ void create() {
   lv_obj_set_style_bg_color(scr, lv_color_black(), 0);
   lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, 0);
   lv_obj_set_scrollable(scr, false);
-  lv_obj_add_event_cb(scr, tapCb, LV_EVENT_CLICKED, nullptr);
+  // React on finger-down, not on release: immediate, and a finger that slides a
+  // little still counts as a tap.
+  lv_obj_add_event_cb(scr, tapCb, LV_EVENT_PRESSED, nullptr);
 
   const int W = theme::W - 2 * theme::ROOT_INSET;
   const int H = theme::H - 2 * theme::ROOT_INSET;
@@ -105,7 +107,7 @@ void create() {
   lv_obj_set_pos(g_root, theme::ROOT_INSET, theme::ROOT_INSET);
   lv_obj_set_size(g_root, W, H);
   lv_obj_set_scrollable(g_root, false);
-  lv_obj_add_event_cb(g_root, tapCb, LV_EVENT_CLICKED, nullptr);
+  lv_obj_add_event_cb(g_root, tapCb, LV_EVENT_PRESSED, nullptr);
 
   // Status strip: dot, word, battery. Inset from the sides to clear the rounded corners.
   int left = theme::CORNER_INSET - theme::ROOT_INSET;

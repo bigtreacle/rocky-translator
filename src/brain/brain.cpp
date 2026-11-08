@@ -236,6 +236,7 @@ void tick(uint32_t nowMs) {
 }
 
 void onTap() {
+  Serial.printf("brain: tap (%s)\n", stateName());
   if (g_state == State::Speaking) return;  // let it finish
   const phrases::Phrase *next = nullptr;
   bool inExchange = g_lastSpoken && (g_now - g_lastTapMs) < 30000UL;

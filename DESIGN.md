@@ -609,9 +609,13 @@ edges are fully visible but the **bezel corners are rounded**: guide dots at
 puts the corner radius at roughly 55 to 80 px (5 to 6 mm). Layout rule from
 that: nothing that must be read sits within 72 px of a side in the top or
 bottom 30 px of the screen, and the status strip's dot and battery glyph are
-inset accordingly (section 9). Touch: the CST820 must have auto-sleep disabled (reg 0xFE = 1)
-and be read only while its INT line is low; polled blindly it lagged by
-seconds. USB CDC writes must not block when no host reads
+inset accordingly (section 9). Touch: the CST820 must have auto-sleep disabled (reg 0xFE = 1);
+polled blindly it lagged by seconds. Its INT line pulses low per report
+rather than staying low, so a level check at poll time misses quick taps
+(only a hold registered): latch the falling edge in an ISR and read when a
+report arrived or a finger was down last time. The UI reacts on finger-down
+(`LV_EVENT_PRESSED`), not on release, so quick and slightly sliding taps
+count. USB CDC writes must not block when no host reads
 (`Serial.setTxTimeoutMs(0)`), or every print stalls the loop for 100 ms.
 Touch lands slightly low; a y offset may be needed. GPIO 46 not yet metered.
 Audio is a stub until M1.
@@ -644,8 +648,8 @@ status strip; muting also drops the amplifier enable so there is no idle
 hiss. Volume (`vol`) and bass cut are saved too. Heard later the same evening: the
 path works end to end (tone, silence while the amp enable was held low, tone
 again), phrases play from a tap after a BOOT press, and 85 % was far too loud
-for a desk toy, so the default volume is now **40**; `vol` over serial
-adjusts and saves it. Still to judge: clicks at chord boundaries and the
+for a desk toy, 40 was too quiet, so the default volume is **60**; `vol`
+over serial adjusts and saves it. Still to judge: clicks at chord boundaries and the
 wavetable blend.
 
 **M2 translator screen.** Full UI; spectrum follows synth; typewriter after

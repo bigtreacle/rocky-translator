@@ -21,6 +21,7 @@ void onPickedUp();
 void onShaken();
 
 void setBattery(int percent, bool charging);
+void setMuted(bool muted);
 
 const ui::UiModel &model();
 const char *stateName();

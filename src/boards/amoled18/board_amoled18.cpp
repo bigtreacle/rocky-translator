@@ -6,12 +6,14 @@
 #include <Adafruit_XCA9554.h>
 #include <Arduino.h>
 #include <Arduino_GFX_Library.h>
+#include <ESP_I2S.h>
 #include <Wire.h>
 #define XPOWERS_CHIP_AXP2101
 #include <XPowersLib.h>
 #include <SensorQMI8658.hpp>
 
 #include "../../hal/board.h"
+#include "es8311/es8311.h"
 #include "pins.h"
 
 namespace {
@@ -192,29 +194,95 @@ class Amoled18Touch : public hal::Touch {
 
 // ------------------------------------------------------------------ Audio
 //
-// M0 stub. The ES8311 driver (Espressif's es8311.c as carried by Waveshare's
-// Arduino demo) is vendored in M1; until then begin() only drives the amp pin so
-// it can be measured, and reports that there is no codec driver yet.
+// One I2S peripheral in full duplex to the ES8311 (DAC and analog mic on the
+// same chip, so one sample rate for both). The codec driver is Espressif's
+// es8311.c as carried by Waveshare's Arduino demo, in ./es8311/. Codec
+// configuration follows that demo: MCLK from the MCLK pin at 256 x fs, 16-bit.
+
+I2SClass g_i2s;
+bool g_i2sUp = false;
+uint32_t g_i2sRate = 0;
+es8311_handle_t g_codec = nullptr;
+
+bool i2sBegin(uint32_t rate) {
+  if (g_i2sUp) return g_i2sRate == rate;
+  g_i2s.setPins(pins::I2S_BCLK, pins::I2S_WS, pins::I2S_DOUT, pins::I2S_DIN, pins::I2S_MCLK);
+  if (!g_i2s.begin(I2S_MODE_STD, rate, I2S_DATA_BIT_WIDTH_16BIT, I2S_SLOT_MODE_STEREO, I2S_STD_SLOT_BOTH)) {
+    Serial.println("audio: I2S begin failed");
+    return false;
+  }
+  g_codec = es8311_create(0, ES8311_ADDRRES_0);  // Wire has already set up I2C port 0
+  if (!g_codec) {
+    Serial.println("audio: ES8311 create failed");
+    return false;
+  }
+  const es8311_clock_config_t clk = {
+      .mclk_inverted = false,
+      .sclk_inverted = false,
+      .mclk_from_mclk_pin = true,
+      .mclk_frequency = (int)(rate * 256),
+      .sample_frequency = (int)rate,
+  };
+  if (es8311_init(g_codec, &clk, ES8311_RESOLUTION_16, ES8311_RESOLUTION_16) != ESP_OK ||
+      es8311_sample_frequency_config(g_codec, clk.mclk_frequency, clk.sample_frequency) != ESP_OK ||
+      es8311_microphone_config(g_codec, false) != ESP_OK) {
+    Serial.println("audio: ES8311 init failed (is the 22.05 kHz row in its clock table?)");
+    return false;
+  }
+  es8311_microphone_gain_set(g_codec, (es8311_mic_gain_t)3);  // 18 dB, as the demo
+  g_i2sUp = true;
+  g_i2sRate = rate;
+  // Prime the DAC with silence before the amplifier comes on: no turn-on thump.
+  static int16_t zeros[512] = {};
+  for (int i = 0; i < 8; i++) g_i2s.write((uint8_t *)zeros, sizeof zeros);
+  Serial.printf("audio: ES8311 up at %u Hz\n", (unsigned)rate);
+  return true;
+}
 
 class Amoled18AudioOut : public hal::AudioOut {
  public:
   bool begin(uint32_t sampleRate) override {
-    (void)sampleRate;
     pinMode(pins::AMP_ENABLE, OUTPUT);
-    setAmpEnabled(true);
-    Serial.println("audio out: ES8311 driver not vendored yet (M1); amp enable driven high");
-    return false;
+    digitalWrite(pins::AMP_ENABLE, LOW);
+    return i2sBegin(sampleRate);
   }
-  size_t write(const int16_t *, size_t) override { return 0; }
-  void setVolume(uint8_t) override {}
+  size_t write(const int16_t *stereoFrames, size_t frames) override {
+    if (!g_i2sUp) {
+      delay(frames * 1000 / 22050);  // keep the synth task paced even without hardware
+      return frames;
+    }
+    return g_i2s.write((uint8_t *)stereoFrames, frames * 4) / 4;
+  }
+  void setVolume(uint8_t percent) override {
+    if (g_codec) es8311_voice_volume_set(g_codec, percent > 100 ? 100 : percent, nullptr);
+  }
   void setAmpEnabled(bool on) override { digitalWrite(pins::AMP_ENABLE, on ? HIGH : LOW); }
 };
 
 class Amoled18AudioIn : public hal::AudioIn {
  public:
-  bool begin(uint32_t) override { return false; }
-  size_t read(int16_t *, size_t) override { return 0; }
-  void setGainDb(int) override {}
+  bool begin(uint32_t sampleRate) override { return i2sBegin(sampleRate); }
+  size_t read(int16_t *monoFrames, size_t frames) override {
+    if (!g_i2sUp) return 0;
+    static int16_t stereo[1024];
+    size_t done = 0;
+    while (done < frames) {
+      size_t want = frames - done;
+      if (want > 512) want = 512;
+      size_t got = g_i2s.readBytes((char *)stereo, want * 4) / 4;
+      if (!got) break;
+      for (size_t i = 0; i < got; i++) monoFrames[done + i] = stereo[2 * i];  // left slot
+      done += got;
+    }
+    return done;
+  }
+  void setGainDb(int db) override {
+    if (!g_codec) return;
+    int step = db / 6;  // the ES8311 gain enum is in 6 dB steps, 0..7
+    if (step < 0) step = 0;
+    if (step > 7) step = 7;
+    es8311_microphone_gain_set(g_codec, (es8311_mic_gain_t)step);
+  }
 };
 
 // ----------------------------------------------------------------- Motion
@@ -296,6 +364,8 @@ namespace hal {
 bool boardBegin(BoardInfo &info) {
   info.name = "Waveshare ESP32-S3-Touch-AMOLED-1.8";
 
+  pinMode(pins::BOOT_BUTTON, INPUT_PULLUP);
+
   // 1. I2C.
   Wire.begin(pins::I2C_SDA, pins::I2C_SCL, pins::I2C_HZ);
   g_sda = pins::I2C_SDA;
@@ -330,6 +400,8 @@ bool boardBegin(BoardInfo &info) {
   }
   return true;
 }
+
+bool bootButtonPressed() { return digitalRead(pins::BOOT_BUTTON) == LOW; }
 
 Display &display() { return g_display; }
 Touch &touch() { return g_touch; }

@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "../phrases/phrase_bank.h"
+#include "../synth/synth_engine.h"
 #include "../ui/translator_screen.h"
 
 namespace brain {
@@ -111,6 +112,8 @@ void showChordNotes(const phrases::Chord &c) {
   g_model.noteIsHeard = false;
 }
 
+void soundChord(const phrases::Chord &c) { synth::noteOn(c.notes, c.velocity); }
+
 void startPhrase(const phrases::Phrase *p) {
   if (!p) return;
   g_phrase = p;
@@ -120,6 +123,7 @@ void startPhrase(const phrases::Phrase *p) {
   g_inGap = false;
   g_mirrorRoot = 0;
   showChordNotes(p->chords[0]);
+  soundChord(p->chords[0]);
   g_model.status = ui::Status::Speaking;
   setState(State::Speaking);
   Serial.printf("brain: speaking %s\n", p->id.c_str());
@@ -153,9 +157,13 @@ void advanceSpeaking() {
     g_inGap = false;
     g_chord++;
     g_chordStart = g_now;
-    if (g_chord < (int)g_phrase->chords.size()) showChordNotes(g_phrase->chords[g_chord]);
+    if (g_chord < (int)g_phrase->chords.size()) {
+      showChordNotes(g_phrase->chords[g_chord]);
+      soundChord(g_phrase->chords[g_chord]);
+    }
   }
   if (g_chord >= (int)g_phrase->chords.size()) {
+    synth::noteOff();
     g_model.status = ui::Status::Translating;
     setState(State::Translating);
     ui::translator::startTyping(g_phrase->text.c_str());
@@ -169,11 +177,15 @@ void advanceSpeaking() {
       g_inGap = true;
       g_chordStart = g_now;
       g_model.note[0] = 0;
+      synth::noteOff();
       return;
     }
     g_chord++;
     g_chordStart = g_now;
-    if (g_chord < (int)g_phrase->chords.size()) showChordNotes(g_phrase->chords[g_chord]);
+    if (g_chord < (int)g_phrase->chords.size()) {
+      showChordNotes(g_phrase->chords[g_chord]);
+      soundChord(g_phrase->chords[g_chord]);
+    }
   }
 }
 
@@ -265,6 +277,8 @@ void onShaken() {
   if (g_state == State::Speaking) return;
   startPhrase(phrases::pick(phrases::Trigger::Shaken, nullptr));
 }
+
+void setMuted(bool muted) { g_model.muted = muted; }
 
 void setBattery(int percent, bool charging) {
   g_model.batteryPercent = percent;

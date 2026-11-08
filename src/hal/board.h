@@ -25,6 +25,8 @@ struct BoardInfo {
 // answer at all (no I2C devices).
 bool boardBegin(BoardInfo &info);
 
+bool bootButtonPressed();  // the BOOT side button, held right now
+
 Display &display();
 Touch &touch();
 AudioOut &audioOut();

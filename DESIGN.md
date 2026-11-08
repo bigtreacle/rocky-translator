@@ -628,6 +628,23 @@ Day-1 checklist before any of that, with the board in hand:
 spectrum redraws during playback without audio glitches (this is the
 test of the core split and I2S buffering).
 
+Status 2026-11-08, built late in the evening so **not yet listened to**:
+`src/synth/synth_engine.cpp` (own task on core 0, priority 20, 4 wavetable
+voices, ADSR, detune, vibrato fade-in, 220 Hz bass cut, soft limiter, 256-frame
+blocks paced by the I2S DMA) writes to `hal::AudioOut`, implemented in the
+board layer with `ESP_I2S` in full duplex and the vendored Espressif
+`es8311.c` from Waveshare's demo (MCLK 256 x fs on GPIO 16, 16-bit, analog
+mic path configured, mic gain 18 dB). The brain is the conductor: `noteOn`
+at each chord start, `noteOff` at its end and in gaps. Verified over serial:
+codec initialises at 22.05 kHz, the task renders at the DMA rate, a tap gives
+a chord with a pre-limiter peak around 0.4, output stays zero while muted.
+**Mute** is a short press of the BOOT button (and `mute` over serial): muted
+by default on first boot, remembered in NVS, shown as a mute symbol in the
+status strip; muting also drops the amplifier enable so there is no idle
+hiss. Volume (`vol`) and bass cut are saved too. Still to do with ears:
+click check, loudness, the wavetable blend, and whether 85 % is the right
+default on the quieter V2 speaker.
+
 **M2 translator screen.** Full UI; spectrum follows synth; typewriter after
 playback; layout photographed at arm's length.
 

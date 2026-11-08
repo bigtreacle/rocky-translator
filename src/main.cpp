@@ -8,12 +8,18 @@
 //   whistle <midi> a whistled note (e.g. whistle 72 = C5), then the mirror reply
 //   pickup | shake IMU gestures
 //   shift          burn-in nudge now        b <0-100>  brightness
+//   mute           toggle the speaker (same as a short press of the BOOT button)
+//   vol <0-100>    codec volume             audio      synth diagnostics
 //   m0             the M0 hardware test screen (reset to come back)
+//
+// Sound: the BOOT side button toggles mute. The device boots muted the first
+// time and remembers the last setting.
 #include <Arduino.h>
 #include <LittleFS.h>
 
 #include "brain/brain.h"
 #include "phrases/phrase_bank.h"
+#include "synth/synth_engine.h"
 #include "hal/board.h"
 #include "ui/bringup_screen.h"
 #include "ui/lvgl_port.h"
@@ -25,6 +31,22 @@ static bool g_powerOk = false;
 static uint32_t g_speechEndAt = 0;
 
 static void onTap() { brain::onTap(); }
+
+static void toggleMute() {
+  synth::setMuted(!synth::muted());
+  brain::setMuted(synth::muted());
+  Serial.printf("sound %s\n", synth::muted() ? "muted" : "on");
+}
+
+// BOOT button: short press toggles mute. Long press is reserved for settings.
+static void pollBootButton(uint32_t now) {
+  static bool was = false;
+  static uint32_t downAt = 0;
+  bool down = hal::bootButtonPressed();
+  if (down && !was) downAt = now;
+  if (!down && was && now - downAt >= 30 && now - downAt < 1000) toggleMute();
+  was = down;
+}
 
 static void handleSerial() {
   static char line[40];
@@ -46,6 +68,12 @@ static void handleSerial() {
       else if (!strcmp(cmd, "shift")) ui::translator::shiftForBurnIn();
       else if (!strcmp(cmd, "b")) hal::display().setBrightness((uint8_t)arg);
       else if (!strcmp(cmd, "m0")) { ui::bringupCreate("ERIDIAN M0", g_info.revision); }
+      else if (!strcmp(cmd, "mute")) toggleMute();
+      else if (!strcmp(cmd, "vol")) { synth::setVolume((uint8_t)arg); Serial.printf("volume %d\n", arg); }
+      else if (!strcmp(cmd, "audio"))
+        Serial.printf("synth %s, %s, blocks %lu, peak %.2f, playing %d\n", synth::running() ? "running" : "stopped",
+                      synth::muted() ? "muted" : "on", (unsigned long)synth::blocksRendered(), synth::lastPeak(),
+                      synth::playing());
       else if (!strcmp(cmd, "reload")) Serial.printf("phrases: %d (%s)\n", phrases::reload(), phrases::source());
       else if (!strcmp(cmd, "phrases")) {
         for (int i = 0; i < phrases::count(); i++) {
@@ -54,7 +82,7 @@ static void handleSerial() {
                         (int)p->chords.size(), p->next.empty() ? "-" : p->next.c_str(), p->text.c_str());
         }
       }
-      else Serial.println("commands: tap, speech, whistle <midi>, pickup, shake, shift, b <0-100>, reload, phrases, m0");
+      else Serial.println("commands: tap, speech, whistle <midi>, pickup, shake, shift, b <0-100>, mute, vol <0-100>, audio, reload, phrases, m0");
     } else if (n < sizeof line - 1) {
       line[n++] = c;
     }
@@ -77,9 +105,10 @@ void setup() {
   bool touchOk = hal::touch().begin();
   hal::motion().begin();
   g_powerOk = hal::power().begin();
-  hal::audioOut().begin(22050);  // stub until M1; drives the amp enable pin
   Serial.printf("display %s, touch %s (%s), power %s\n", displayOk ? "ok" : "FAILED", touchOk ? "ok" : "FAILED",
                 hal::touch().chipName(), g_powerOk ? "ok" : "FAILED");
+  synth::begin(hal::audioOut(), 22050);
+  synth::setMuted(synth::muted());  // applies the remembered state to the amplifier pin
 
   if (displayOk && ui::lvglBegin(hal::display(), hal::touch())) {
     ui::translator::create();
@@ -88,12 +117,15 @@ void setup() {
   if (!LittleFS.begin(false)) Serial.println("littlefs: mount failed (run: pio run -t uploadfs)");
   phrases::begin();
   brain::begin();
-  Serial.printf("ready, %d phrases (%s)\n", phrases::count(), phrases::source());
+  brain::setMuted(synth::muted());
+  Serial.printf("ready, %d phrases (%s), sound %s\n", phrases::count(), phrases::source(),
+                synth::muted() ? "muted (press BOOT to unmute)" : "on");
 }
 
 void loop() {
   uint32_t now = millis();
   handleSerial();
+  pollBootButton(now);
   if (g_speechEndAt && now >= g_speechEndAt) {
     g_speechEndAt = 0;
     brain::onSpeechEnd();

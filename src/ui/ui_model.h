@@ -27,6 +27,7 @@ struct UiModel {
   int batteryPercent = -1;   // -1 unknown
   bool charging = false;
   bool error = false;        // red status dot
+  bool muted = true;         // speaker muted (shown in the status strip)
 };
 
 }  // namespace ui

@@ -4,8 +4,9 @@ A handheld desk toy that speaks in chords and listens back, on the Waveshare
 ESP32-S3-Touch-AMOLED-1.8. `rocky-translator-brief.md` is the brief,
 `DESIGN.md` the design and build plan. State: **M0 bring-up, M2 translator
 screen and M3 phrases from JSON done** (tested on a V2 board on 2026-11-08; see
-the status notes in DESIGN.md §14). Sound (M1) is not started: chords are
-timed silently and the screen shows what the synth will play.
+the status notes in DESIGN.md §14). Sound (M1) is built but has not been
+listened to yet: the device boots **muted**; a short press of the BOOT side
+button toggles the speaker, and the setting is remembered.
 
 ## Build and flash
 
@@ -25,6 +26,7 @@ Tap the screen for the next phrase of an exchange. Until the mic and IMU are
 wired in, these serial commands stand in for them:
 
     tap   speech   whistle 72   pickup   shake   shift   b 40   reload   phrases   m0
+    mute   vol 70   audio
 
 ## Writing phrases
 
@@ -65,10 +67,13 @@ amber dot that follows a finger.
 
     src/hal/              the six hardware interfaces; no board knowledge
     src/boards/amoled18/  this board: pins.h holds every number, board_amoled18.cpp
-                          implements the interfaces and detects the revision
+                          implements the interfaces and detects the revision;
+                          es8311/ is Espressif's codec driver (Apache-2.0) as
+                          carried by Waveshare's demo
     src/ui/               LVGL glue (lvgl_port), the translator screen, the spectrum
                           widget, theme, and the M0 test screen
     src/brain/            the interaction state machine; owns the conversation
+    src/synth/            chord synth: voices, envelopes, limiter, own task on core 0
     src/phrases/          phrase bank, loaded from data/phrases.json on LittleFS
     tools/check_phrases.py validates the phrase file
     src/main.cpp          boot, wiring, serial simulation of mic and IMU events
@@ -78,5 +83,4 @@ amber dot that follows a finger.
     vendor/               gitignored; keep Waveshare's demo zip here as the reference
 
 Later boards are an extra `[env:...]` in `platformio.ini` plus a
-`src/boards/<name>/` folder. Audio is a stub until M1 vendors the ES8311
-driver from Waveshare's Arduino demo.
+`src/boards/<name>/` folder.

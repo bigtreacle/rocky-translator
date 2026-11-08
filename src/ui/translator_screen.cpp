@@ -31,6 +31,7 @@ Status g_lastStatus = Status::Standby;
 int g_lastBattery = -2;
 bool g_lastCharging = false;
 bool g_lastError = false;
+bool g_lastMuted = false;
 char g_lastNote[32] = "?";
 bool g_lastHeard = false;
 
@@ -175,10 +176,11 @@ void apply(const UiModel &m) {
     g_lastError = m.error;
     lv_obj_set_style_bg_color(g_dot, lv_color_hex(m.error ? theme::ERROR : theme::ACCENT), 0);
   }
-  if (m.batteryPercent != g_lastBattery || m.charging != g_lastCharging) {
+  if (m.batteryPercent != g_lastBattery || m.charging != g_lastCharging || m.muted != g_lastMuted) {
     g_lastBattery = m.batteryPercent;
     g_lastCharging = m.charging;
-    char buf[32];
+    g_lastMuted = m.muted;
+    char buf[48];
     if (m.batteryPercent < 0) {
       snprintf(buf, sizeof buf, "%s", m.charging ? LV_SYMBOL_USB : "");
     } else {
@@ -189,7 +191,13 @@ void apply(const UiModel &m) {
                                                 : LV_SYMBOL_BATTERY_EMPTY;
       snprintf(buf, sizeof buf, "%s%s %d%%", m.charging ? LV_SYMBOL_CHARGE " " : "", sym, m.batteryPercent);
     }
-    lv_label_set_text(g_battery, buf);
+    if (m.muted) {
+      char withMute[64];
+      snprintf(withMute, sizeof withMute, LV_SYMBOL_MUTE "  %s", buf);
+      lv_label_set_text(g_battery, withMute);
+    } else {
+      lv_label_set_text(g_battery, buf);
+    }
   }
   if (strcmp(m.note, g_lastNote) != 0 || m.noteIsHeard != g_lastHeard) {
     strncpy(g_lastNote, m.note, sizeof g_lastNote - 1);

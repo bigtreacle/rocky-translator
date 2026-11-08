@@ -10,6 +10,7 @@
 //   shift          burn-in nudge now        b <0-100>  brightness
 //   m0             the M0 hardware test screen (reset to come back)
 #include <Arduino.h>
+#include <LittleFS.h>
 
 #include "brain/brain.h"
 #include "phrases/phrase_bank.h"
@@ -45,7 +46,15 @@ static void handleSerial() {
       else if (!strcmp(cmd, "shift")) ui::translator::shiftForBurnIn();
       else if (!strcmp(cmd, "b")) hal::display().setBrightness((uint8_t)arg);
       else if (!strcmp(cmd, "m0")) { ui::bringupCreate("ERIDIAN M0", g_info.revision); }
-      else Serial.println("commands: tap, speech, whistle <midi>, pickup, shake, shift, b <0-100>, m0");
+      else if (!strcmp(cmd, "reload")) Serial.printf("phrases: %d (%s)\n", phrases::reload(), phrases::source());
+      else if (!strcmp(cmd, "phrases")) {
+        for (int i = 0; i < phrases::count(); i++) {
+          const phrases::Phrase *p = phrases::at(i);
+          Serial.printf("  %-10s trig %d chords %d next %-8s %s\n", p->id.c_str(), (int)p->trigger,
+                        (int)p->chords.size(), p->next.empty() ? "-" : p->next.c_str(), p->text.c_str());
+        }
+      }
+      else Serial.println("commands: tap, speech, whistle <midi>, pickup, shake, shift, b <0-100>, reload, phrases, m0");
     } else if (n < sizeof line - 1) {
       line[n++] = c;
     }
@@ -76,8 +85,10 @@ void setup() {
     ui::translator::create();
     ui::translator::setTapHandler(onTap);
   }
+  if (!LittleFS.begin(false)) Serial.println("littlefs: mount failed (run: pio run -t uploadfs)");
+  phrases::begin();
   brain::begin();
-  Serial.printf("ready, %d phrases\n", phrases::count());
+  Serial.printf("ready, %d phrases (%s)\n", phrases::count(), phrases::source());
 }
 
 void loop() {

@@ -22,6 +22,7 @@ const phrases::Phrase *g_phrase = nullptr;
 const phrases::Phrase *g_lastSpoken = nullptr;
 int g_chord = -1;
 uint32_t g_chordStart = 0;
+bool g_inGap = false;
 uint32_t g_lastTapMs = 0;
 int g_mirrorRoot = 0;  // whistle mirror reply, 0 = none pending
 uint32_t g_lastShift = 0;
@@ -98,6 +99,7 @@ void chordBands(const phrases::Chord &c, uint32_t elapsed) {
 }
 
 void showChordNotes(const phrases::Chord &c) {
+  (void)c;
   g_model.note[0] = 0;
   for (int n = 0; n < 4; n++) {
     if (!c.notes[n]) continue;
@@ -115,46 +117,63 @@ void startPhrase(const phrases::Phrase *p) {
   g_lastSpoken = p;
   g_chord = 0;
   g_chordStart = g_now;
+  g_inGap = false;
   g_mirrorRoot = 0;
   showChordNotes(p->chords[0]);
   g_model.status = ui::Status::Speaking;
   setState(State::Speaking);
-  Serial.printf("brain: speaking %s\n", p->id);
+  Serial.printf("brain: speaking %s\n", p->id.c_str());
 }
 
 phrases::Phrase g_mirror;  // built on the fly for a whistle reply
 
 void startMirror(int midi) {
   // Major triad on the whistled note, twice, then the root an octave up.
-  g_mirror = phrases::Phrase{"mirror", phrases::Trigger::HeardWhistle, nullptr, {}, 3, nullptr};
   uint8_t r = (uint8_t)midi;
   while (r < 60) r += 12;
   while (r > 84) r -= 12;
-  g_mirror.chords[0] = {{r, (uint8_t)(r + 4), (uint8_t)(r + 7), 0}, 300};
-  g_mirror.chords[1] = {{r, (uint8_t)(r + 4), (uint8_t)(r + 7), 0}, 300};
-  g_mirror.chords[2] = {{(uint8_t)(r + 12), 0, 0, 0}, 450};
-  static char text[48];
+  g_mirror = phrases::Phrase();
+  g_mirror.id = "mirror";
+  g_mirror.trigger = phrases::Trigger::HeardWhistle;
+  g_mirror.chords = {{{r, (uint8_t)(r + 4), (uint8_t)(r + 7), 0}, 300, 0, 100},
+                     {{r, (uint8_t)(r + 4), (uint8_t)(r + 7), 0}, 300, 0, 100},
+                     {{(uint8_t)(r + 12), 0, 0, 0}, 450, 0, 100}};
   char nm[8];
   noteName(midi, nm, sizeof nm);
-  snprintf(text, sizeof text, "You said: %s. I say it back.", nm);
-  g_mirror.text = text;
+  g_mirror.text = std::string("You said: ") + nm + ". I say it back.";
   startPhrase(&g_mirror);
 }
 
 void advanceSpeaking() {
   const phrases::Chord &c = g_phrase->chords[g_chord];
   uint32_t elapsed = g_now - g_chordStart;
-  chordBands(c, elapsed);
-  if (elapsed >= c.ms) {
+  if (g_inGap) {
+    decayBands(0.04f, 0.3f);
+    if (elapsed < c.gapMs) return;
+    g_inGap = false;
     g_chord++;
-    if (g_chord >= g_phrase->chordCount) {
-      g_model.status = ui::Status::Translating;
-      setState(State::Translating);
-      ui::translator::startTyping(g_phrase->text ? g_phrase->text : "");
+    g_chordStart = g_now;
+    if (g_chord < (int)g_phrase->chords.size()) showChordNotes(g_phrase->chords[g_chord]);
+  }
+  if (g_chord >= (int)g_phrase->chords.size()) {
+    g_model.status = ui::Status::Translating;
+    setState(State::Translating);
+    ui::translator::startTyping(g_phrase->text.c_str());
+    return;
+  }
+  const phrases::Chord &cur = g_phrase->chords[g_chord];
+  elapsed = g_now - g_chordStart;
+  chordBands(cur, elapsed);
+  if (elapsed >= cur.ms) {
+    if (cur.gapMs > 0) {
+      g_inGap = true;
+      g_chordStart = g_now;
+      g_model.note[0] = 0;
       return;
     }
+    g_chord++;
     g_chordStart = g_now;
-    showChordNotes(g_phrase->chords[g_chord]);
+    if (g_chord < (int)g_phrase->chords.size()) showChordNotes(g_phrase->chords[g_chord]);
   }
 }
 
@@ -209,8 +228,8 @@ void onTap() {
   const phrases::Phrase *next = nullptr;
   bool inExchange = g_lastSpoken && (g_now - g_lastTapMs) < 30000UL;
   g_lastTapMs = g_now;
-  if (inExchange && g_lastSpoken->next) next = phrases::byId(g_lastSpoken->next);
-  if (!next) next = phrases::pick(phrases::Trigger::Tap, g_lastSpoken ? g_lastSpoken->id : nullptr);
+  if (inExchange && !g_lastSpoken->next.empty()) next = phrases::byId(g_lastSpoken->next.c_str());
+  if (!next) next = phrases::pick(phrases::Trigger::Tap, g_lastSpoken ? g_lastSpoken->id.c_str() : nullptr);
   startPhrase(next);
 }
 
@@ -223,7 +242,7 @@ void onSpeechStart() {
 
 void onSpeechEnd() {
   if (g_state != State::Receiving) return;
-  startPhrase(phrases::pick(phrases::Trigger::HeardSpeech, g_lastSpoken ? g_lastSpoken->id : nullptr));
+  startPhrase(phrases::pick(phrases::Trigger::HeardSpeech, g_lastSpoken ? g_lastSpoken->id.c_str() : nullptr));
 }
 
 void onWhistle(int midi, int cents) {

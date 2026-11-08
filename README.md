@@ -2,10 +2,10 @@
 
 A handheld desk toy that speaks in chords and listens back, on the Waveshare
 ESP32-S3-Touch-AMOLED-1.8. `rocky-translator-brief.md` is the brief,
-`DESIGN.md` the design and build plan. State: **M0 bring-up done, M2
-translator screen running** (both tested on a V2 board on 2026-11-08; see the
-status notes in DESIGN.md §14). Sound (M1) is not started: chords are timed
-silently and the screen shows what the synth will play.
+`DESIGN.md` the design and build plan. State: **M0 bring-up, M2 translator
+screen and M3 phrases from JSON done** (tested on a V2 board on 2026-11-08; see
+the status notes in DESIGN.md §14). Sound (M1) is not started: chords are
+timed silently and the screen shows what the synth will play.
 
 ## Build and flash
 
@@ -24,7 +24,18 @@ spectrum, the notes being "played", and the English line typing out below.
 Tap the screen for the next phrase of an exchange. Until the mic and IMU are
 wired in, these serial commands stand in for them:
 
-    tap   speech   whistle 72   pickup   shake   shift   b 40   m0
+    tap   speech   whistle 72   pickup   shake   shift   b 40   reload   phrases   m0
+
+## Writing phrases
+
+Edit `data/phrases.json` (the file explains its fields), check it, upload it.
+No firmware rebuild is needed:
+
+    python3 tools/check_phrases.py
+    pio run -e amoled18 -t uploadfs
+
+Then `reload` over serial, or reset the board. Keep notes in 60..84 (C4..C6)
+for the small speaker; the checker warns about others.
 
 (`m0` brings back the hardware test screen below; reset to return.)
 
@@ -58,11 +69,12 @@ amber dot that follows a finger.
     src/ui/               LVGL glue (lvgl_port), the translator screen, the spectrum
                           widget, theme, and the M0 test screen
     src/brain/            the interaction state machine; owns the conversation
-    src/phrases/          phrase bank (built-in placeholders until M3 loads JSON)
+    src/phrases/          phrase bank, loaded from data/phrases.json on LittleFS
+    tools/check_phrases.py validates the phrase file
     src/main.cpp          boot, wiring, serial simulation of mic and IMU events
     include/lv_conf.h     LVGL 9.6 configuration
     boards/               PlatformIO board file (16 MB flash, octal PSRAM)
-    data/                 LittleFS image (phrases.json from M3)
+    data/                 LittleFS image: phrases.json
     vendor/               gitignored; keep Waveshare's demo zip here as the reference
 
 Later boards are an extra `[env:...]` in `platformio.ini` plus a

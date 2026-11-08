@@ -647,6 +647,16 @@ be judged by eye.
 **M3 phrases.** `phrases.json` on LittleFS; exchange cycles; editing the JSON
 and re-uploading the filesystem changes behaviour with no code change.
 
+Status 2026-11-08: done and verified. `data/phrases.json` holds the phrases
+(schema as in §10, plus optional `gap_ms` and `velocity` per chord);
+`src/phrases/phrase_bank.cpp` loads it from LittleFS at boot into
+`std::vector<Phrase>`, skipping malformed entries with a serial warning, and
+falls back to a built-in set if the file is missing. `tools/check_phrases.py`
+validates the file. Acceptance test: an eleventh phrase added to the JSON
+only, `pio run -t uploadfs`, then `reload` over serial reported 11 phrases
+with the firmware untouched. The brain honours `gap_ms` as silence between
+chords.
+
 **M4 listening.** Live mic spectrum; speech vs whistle at ~1 m; reply after
 the speaker stops; zero self-triggers over a 10-minute soak with idle
 chatter on (the gate works).

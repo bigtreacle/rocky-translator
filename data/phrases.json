@@ -1,0 +1,325 @@
+{
+  "version": 1,
+  "_about": "Eridian phrases. trigger: tap | heard_speech | heard_whistle | picked_up | shaken | idle. notes are MIDI (60 = C4); keep them in 60..84 for the small speaker. ms is the chord length; gap_ms (optional) is silence after it; velocity (optional, 1..127). next (optional) is the id a tap continues to. Validate with tools/check_phrases.py, upload with: pio run -t uploadfs",
+  "phrases": [
+    {
+      "id": "greet1",
+      "mood": "warm",
+      "trigger": "picked_up",
+      "next": "greet2",
+      "chords": [
+        {
+          "notes": [
+            60,
+            64,
+            67
+          ],
+          "ms": 320
+        },
+        {
+          "notes": [
+            62,
+            65,
+            69
+          ],
+          "ms": 420
+        }
+      ],
+      "text": "Hello friend. You are warm today."
+    },
+    {
+      "id": "greet2",
+      "mood": "curious",
+      "trigger": "tap",
+      "chords": [
+        {
+          "notes": [
+            67,
+            71,
+            74
+          ],
+          "ms": 280
+        },
+        {
+          "notes": [
+            65,
+            69,
+            72
+          ],
+          "ms": 280
+        },
+        {
+          "notes": [
+            64,
+            67,
+            72
+          ],
+          "ms": 500
+        }
+      ],
+      "text": "Question. Where is the loud star?"
+    },
+    {
+      "id": "tap1",
+      "mood": "warm",
+      "trigger": "tap",
+      "next": "tap2",
+      "chords": [
+        {
+          "notes": [
+            62,
+            66,
+            69
+          ],
+          "ms": 300
+        },
+        {
+          "notes": [
+            64,
+            67,
+            71
+          ],
+          "ms": 300
+        },
+        {
+          "notes": [
+            67,
+            71,
+            74,
+            76
+          ],
+          "ms": 600
+        }
+      ],
+      "text": "I counted your heartbeats. Many. Good."
+    },
+    {
+      "id": "tap2",
+      "mood": "thoughtful",
+      "trigger": "tap",
+      "next": "tap3",
+      "chords": [
+        {
+          "notes": [
+            60,
+            67,
+            72
+          ],
+          "ms": 260
+        },
+        {
+          "notes": [
+            60,
+            67,
+            72
+          ],
+          "ms": 260
+        },
+        {
+          "notes": [
+            59,
+            65,
+            71
+          ],
+          "ms": 520
+        }
+      ],
+      "text": "Your air is thin. Mine is thick. We still talk."
+    },
+    {
+      "id": "tap3",
+      "mood": "joy",
+      "trigger": "tap",
+      "chords": [
+        {
+          "notes": [
+            65,
+            69,
+            72,
+            76
+          ],
+          "ms": 700
+        }
+      ],
+      "text": "Amaze."
+    },
+    {
+      "id": "speech1",
+      "mood": "curious",
+      "trigger": "heard_speech",
+      "chords": [
+        {
+          "notes": [
+            64,
+            68,
+            71
+          ],
+          "ms": 300
+        },
+        {
+          "notes": [
+            66,
+            69,
+            73
+          ],
+          "ms": 300
+        },
+        {
+          "notes": [
+            68,
+            71,
+            75
+          ],
+          "ms": 450
+        }
+      ],
+      "text": "You make many sounds. I understand some. Say again, slower?"
+    },
+    {
+      "id": "speech2",
+      "mood": "thoughtful",
+      "trigger": "heard_speech",
+      "chords": [
+        {
+          "notes": [
+            60,
+            63,
+            67
+          ],
+          "ms": 400
+        },
+        {
+          "notes": [
+            58,
+            62,
+            65
+          ],
+          "ms": 500
+        }
+      ],
+      "text": "Sad chord? No. Thinking chord."
+    },
+    {
+      "id": "whistle1",
+      "mood": "warm",
+      "trigger": "heard_whistle",
+      "chords": [
+        {
+          "notes": [
+            72,
+            76,
+            79
+          ],
+          "ms": 300
+        },
+        {
+          "notes": [
+            72,
+            76,
+            79,
+            84
+          ],
+          "ms": 500
+        }
+      ],
+      "text": "A pure note. You sing like my people. Almost."
+    },
+    {
+      "id": "shake1",
+      "mood": "alarmed",
+      "trigger": "shaken",
+      "chords": [
+        {
+          "notes": [
+            70,
+            71,
+            76
+          ],
+          "ms": 150
+        },
+        {
+          "notes": [
+            70,
+            71,
+            76
+          ],
+          "ms": 150
+        },
+        {
+          "notes": [
+            69,
+            70,
+            75
+          ],
+          "ms": 400
+        }
+      ],
+      "text": "Stop stop stop. The room is moving!"
+    },
+    {
+      "id": "idle1",
+      "mood": "calm",
+      "trigger": "idle",
+      "chords": [
+        {
+          "notes": [
+            60,
+            64,
+            67
+          ],
+          "ms": 250,
+          "gap_ms": 250
+        },
+        {
+          "notes": [
+            60,
+            64,
+            67
+          ],
+          "ms": 250
+        }
+      ],
+      "text": "Still here. Still listening."
+    },
+    {
+      "id": "tap4",
+      "mood": "curious",
+      "trigger": "tap",
+      "chords": [
+        {
+          "notes": [
+            64,
+            67,
+            71
+          ],
+          "ms": 260
+        },
+        {
+          "notes": [
+            66,
+            69,
+            73
+          ],
+          "ms": 260
+        },
+        {
+          "notes": [
+            69,
+            72,
+            76
+          ],
+          "ms": 260
+        },
+        {
+          "notes": [
+            71,
+            74,
+            78
+          ],
+          "ms": 520
+        }
+      ],
+      "text": "Your star rises. Mine has no colour. Tell me about yellow."
+    }
+  ]
+}

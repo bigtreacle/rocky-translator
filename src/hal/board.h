@@ -26,6 +26,7 @@ struct BoardInfo {
 bool boardBegin(BoardInfo &info);
 
 bool bootButtonPressed();  // the BOOT side button, held right now
+void debugAudio(Print &out);  // amp pin read-back and codec registers, for the serial console
 
 Display &display();
 Touch &touch();

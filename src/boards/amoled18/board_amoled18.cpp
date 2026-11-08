@@ -403,6 +403,20 @@ bool boardBegin(BoardInfo &info) {
 
 bool bootButtonPressed() { return digitalRead(pins::BOOT_BUTTON) == LOW; }
 
+void debugAudio(Print &out) {
+  out.printf("amp enable GPIO %d reads %d; i2s %s at %u Hz; codec %s\n", pins::AMP_ENABLE,
+             digitalRead(pins::AMP_ENABLE), g_i2sUp ? "up" : "down", (unsigned)g_i2sRate, g_codec ? "created" : "none");
+  out.print("ES8311 regs:");
+  for (uint8_t r = 0; r <= 0x45; r++) {
+    uint8_t v = 0;
+    bool ok = i2cReadRegs(pins::ADDR_CODEC, r, &v, 1);
+    if (r % 16 == 0) out.printf("\n  %02X:", r);
+    if (ok) out.printf(" %02X", v);
+    else out.print(" --");
+  }
+  out.println();
+}
+
 Display &display() { return g_display; }
 Touch &touch() { return g_touch; }
 AudioOut &audioOut() { return g_audioOut; }

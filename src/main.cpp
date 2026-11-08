@@ -74,6 +74,10 @@ static void handleSerial() {
         Serial.printf("synth %s, %s, blocks %lu, peak %.2f, playing %d\n", synth::running() ? "running" : "stopped",
                       synth::muted() ? "muted" : "on", (unsigned long)synth::blocksRendered(), synth::lastPeak(),
                       synth::playing());
+      else if (!strcmp(cmd, "amp")) { hal::audioOut().setAmpEnabled(arg != 0); hal::debugAudio(Serial); }
+      else if (!strcmp(cmd, "codec")) hal::debugAudio(Serial);
+      else if (!strcmp(cmd, "tone") && strchr(line, ' ') && arg == 0) { synth::noteOff(); Serial.println("tone off"); }
+      else if (!strcmp(cmd, "tone")) { uint8_t n[4] = {(uint8_t)(arg ? arg : 72), 0, 0, 0}; synth::noteOn(n, 100); Serial.println("tone on (tone 0 to stop)"); }
       else if (!strcmp(cmd, "reload")) Serial.printf("phrases: %d (%s)\n", phrases::reload(), phrases::source());
       else if (!strcmp(cmd, "phrases")) {
         for (int i = 0; i < phrases::count(); i++) {

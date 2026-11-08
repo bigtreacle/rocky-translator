@@ -4,9 +4,9 @@ A handheld desk toy that speaks in chords and listens back, on the Waveshare
 ESP32-S3-Touch-AMOLED-1.8. `rocky-translator-brief.md` is the brief,
 `DESIGN.md` the design and build plan. State: **M0 bring-up, M2 translator
 screen and M3 phrases from JSON done** (tested on a V2 board on 2026-11-08; see
-the status notes in DESIGN.md §14). Sound (M1) is built but has not been
-listened to yet: the device boots **muted**; a short press of the BOOT side
-button toggles the speaker, and the setting is remembered.
+the status notes in DESIGN.md §14). Sound (M1) works: a short press of the
+BOOT side button toggles the speaker, the setting is remembered, and the
+volume defaults to 40 (`vol 25` over serial to change it; it is saved).
 
 ## Build and flash
 

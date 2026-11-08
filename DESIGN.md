@@ -641,9 +641,12 @@ a chord with a pre-limiter peak around 0.4, output stays zero while muted.
 **Mute** is a short press of the BOOT button (and `mute` over serial): muted
 by default on first boot, remembered in NVS, shown as a mute symbol in the
 status strip; muting also drops the amplifier enable so there is no idle
-hiss. Volume (`vol`) and bass cut are saved too. Still to do with ears:
-click check, loudness, the wavetable blend, and whether 85 % is the right
-default on the quieter V2 speaker.
+hiss. Volume (`vol`) and bass cut are saved too. Heard later the same evening: the
+path works end to end (tone, silence while the amp enable was held low, tone
+again), phrases play from a tap after a BOOT press, and 85 % was far too loud
+for a desk toy, so the default volume is now **40**; `vol` over serial
+adjusts and saves it. Still to judge: clicks at chord boundaries and the
+wavetable blend.
 
 **M2 translator screen.** Full UI; spectrum follows synth; typewriter after
 playback; layout photographed at arm's length.

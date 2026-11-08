@@ -9,6 +9,8 @@
 //   pickup | shake IMU gestures
 //   shift          burn-in nudge now        b <0-100>  brightness
 //   mute           toggle the speaker (same as a short press of the BOOT button)
+//   listen 0|1     microphone listening off/on   sens <6-24>  dB above the noise floor
+//   mic            listening diagnostics (level, floor, pitch, flatness)
 //   vol <0-100>    codec volume             audio      synth diagnostics
 //   m0             the M0 hardware test screen (reset to come back)
 //
@@ -18,6 +20,7 @@
 #include <LittleFS.h>
 
 #include "brain/brain.h"
+#include "listen/listen_engine.h"
 #include "phrases/phrase_bank.h"
 #include "synth/synth_engine.h"
 #include "hal/board.h"
@@ -78,6 +81,26 @@ static void handleSerial() {
       else if (!strcmp(cmd, "codec")) hal::debugAudio(Serial);
       else if (!strcmp(cmd, "tone") && strchr(line, ' ') && arg == 0) { synth::noteOff(); Serial.println("tone off"); }
       else if (!strcmp(cmd, "tone")) { uint8_t n[4] = {(uint8_t)(arg ? arg : 72), 0, 0, 0}; synth::noteOn(n, 100); Serial.println("tone on (tone 0 to stop)"); }
+      else if (!strcmp(cmd, "listen")) { listen::setEnabled(arg != 0); Serial.printf("listening %s\n", arg ? "on" : "off"); }
+      else if (!strcmp(cmd, "sens")) { listen::setSensitivityDb(arg); Serial.printf("sensitivity %d dB\n", listen::sensitivityDb()); }
+      else if (!strcmp(cmd, "mic"))
+        Serial.printf("listen %s %s, frames %lu, level %.1f dB, floor %.1f dB, thr +%d, pitch %.0f Hz, flatness %.2f, %s\n",
+                      listen::running() ? "running" : "stopped", listen::enabled() ? "enabled" : "disabled",
+                      (unsigned long)listen::frames(), listen::levelDb(), listen::noiseFloorDb(), listen::sensitivityDb(),
+                      listen::lastPitchHz(), listen::lastFlatness(), listen::active() ? "ACTIVE" : "quiet");
+      else if (!strcmp(cmd, "micpeak")) Serial.printf("listen peak since last ask %.1f dB (floor %.1f)\n", listen::peakHoldDb(), listen::noiseFloorDb());
+      else if (!strcmp(cmd, "gate")) { listen::setGate(arg != 0); Serial.printf("self-hearing gate %s\n", arg ? "on" : "OFF (bench test)"); }
+      else if (!strcmp(cmd, "mict")) {
+        uint32_t r, f, p, t;
+        listen::timing(r, f, p, t);
+        Serial.printf("listen frame: read %lu us, fft %lu us, pitch %lu us, total %lu us\n", (unsigned long)r,
+                      (unsigned long)f, (unsigned long)p, (unsigned long)t);
+      }
+      else if (!strcmp(cmd, "creg")) {
+        unsigned reg = 0, val = 0;
+        if (sscanf(line, "creg %x %x", &reg, &val) == 2) Serial.printf("codec reg %02X <- %02X: %s\n", reg, val, hal::debugCodecWrite(reg, val) ? "ok" : "nack");
+      }
+      else if (!strcmp(cmd, "rails")) hal::debugRails(Serial);
       else if (!strcmp(cmd, "reload")) Serial.printf("phrases: %d (%s)\n", phrases::reload(), phrases::source());
       else if (!strcmp(cmd, "phrases")) {
         for (int i = 0; i < phrases::count(); i++) {
@@ -113,6 +136,7 @@ void setup() {
                 hal::touch().chipName(), g_powerOk ? "ok" : "FAILED");
   synth::begin(hal::audioOut(), 22050);
   synth::setMuted(synth::muted());  // applies the remembered state to the amplifier pin
+  listen::begin(hal::audioIn(), 22050);
 
   if (displayOk && ui::lvglBegin(hal::display(), hal::touch())) {
     ui::translator::create();
@@ -133,6 +157,17 @@ void loop() {
   if (g_speechEndAt && now >= g_speechEndAt) {
     g_speechEndAt = 0;
     brain::onSpeechEnd();
+  }
+  listen::Event ev;
+  while (listen::pollEvent(ev)) {
+    switch (ev.type) {
+      case listen::EventType::SpeechStart: Serial.println("listen: speech start"); brain::onSpeechStart(); break;
+      case listen::EventType::SpeechEnd: Serial.println("listen: speech end"); brain::onSpeechEnd(); break;
+      case listen::EventType::Whistle:
+        Serial.printf("listen: whistle midi %d %+d cents\n", ev.midi, ev.cents);
+        brain::onWhistle(ev.midi, ev.cents);
+        break;
+    }
   }
 
   static uint32_t lastPower = 0;

@@ -685,6 +685,30 @@ chords.
 the speaker stops; zero self-triggers over a 10-minute soak with idle
 chatter on (the gate works).
 
+Status 2026-11-08, late: done and verified on the board except the soak
+(idle chatter does not exist until M6). `src/listen/listen_engine.cpp`
+runs on core 0 at priority 10, paced by the mic read (30 frames/s, ~5 ms of
+work per frame: FFT 0.9 ms, YIN 2.5 ms, flatness 0.3 ms). Findings that
+changed the design:
+- **Mic gain 42 dB** (codec step 7), not the demo's 18 dB: silence peaks
+  ~350/32767, the own speaker at volume 60 ~13000, speech at arm's length
+  22 to 26 dB above the floor. Noise scales with gain, so the floor is
+  acoustic.
+- **Level = loudest band** in 150 Hz to 3 kHz, not the mean: speech is
+  peaky, room noise flat. Threshold floor + 10 dB. Speech starts when 6 of
+  the last 9 frames are loud (speech has gaps), ends after 21 quiet frames.
+- **Floor** seeds only once the ring is full (a floor seeded from silence
+  made everything "speech"), falls fast, rises slowly, and does not rise
+  while sound sits within 5 dB above it; a loud state lasting 20 s re-seeds.
+- **YIN on ESP-DSP**: the plain C difference function took 27 ms a frame;
+  energies from a prefix sum plus `dsps_dotprod_f32` take 2.5 ms.
+- A per-frame `vTaskDelay(1)` keeps the idle task fed; without it a backlog
+  starved the task watchdog and rebooted the board every 12 s.
+- Whistle: C6 whistled at arm's length detected at +30 dB, flatness 0.00,
+  pitch 1066 Hz, reported as midi 84 +26 cents, mirror reply played.
+Serial: `mic`, `micpeak`, `mict`, `listen 0|1`, `sens <6-24>`, `gate 0|1`
+(bench only), `creg <reg> <val>` (codec poke), `rails` (PMIC rails).
+
 **M5 motion and power.** Pick-up, shake, face-down; burn-in shift visible
 with a ruler against the bezel; standby and off timers; battery %; power
 button short/long.

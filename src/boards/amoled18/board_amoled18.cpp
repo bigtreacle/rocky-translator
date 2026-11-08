@@ -238,7 +238,9 @@ bool i2sBegin(uint32_t rate) {
     Serial.println("audio: ES8311 init failed (is the 22.05 kHz row in its clock table?)");
     return false;
   }
-  es8311_microphone_gain_set(g_codec, (es8311_mic_gain_t)3);  // 18 dB, as the demo
+  // 42 dB: measured 2026-11-08, silence peaks ~350/32767 and the own speaker at volume 60 ~13000,
+  // so speech at arm's length sits well clear of the floor without clipping. The demo used 18 dB.
+  es8311_microphone_gain_set(g_codec, (es8311_mic_gain_t)7);
   g_i2sUp = true;
   g_i2sRate = rate;
   // Prime the DAC with silence before the amplifier comes on: no turn-on thump.
@@ -268,6 +270,8 @@ class Amoled18AudioOut : public hal::AudioOut {
   void setAmpEnabled(bool on) override { digitalWrite(pins::AMP_ENABLE, on ? HIGH : LOW); }
 };
 
+volatile int g_micPeakL = 0, g_micPeakR = 0;  // of the last read, for diagnostics
+
 class Amoled18AudioIn : public hal::AudioIn {
  public:
   bool begin(uint32_t sampleRate) override { return i2sBegin(sampleRate); }
@@ -280,7 +284,15 @@ class Amoled18AudioIn : public hal::AudioIn {
       if (want > 512) want = 512;
       size_t got = g_i2s.readBytes((char *)stereo, want * 4) / 4;
       if (!got) break;
-      for (size_t i = 0; i < got; i++) monoFrames[done + i] = stereo[2 * i];  // left slot
+      int pl = 0, pr = 0;
+      for (size_t i = 0; i < got; i++) {
+        monoFrames[done + i] = stereo[2 * i];  // left slot
+        int l = abs(stereo[2 * i]), r = abs(stereo[2 * i + 1]);
+        if (l > pl) pl = l;
+        if (r > pr) pr = r;
+      }
+      g_micPeakL = pl;
+      g_micPeakR = pr;
       done += got;
     }
     return done;
@@ -321,9 +333,12 @@ class Amoled18Motion : public hal::Motion {
 
 // ------------------------------------------------------------------ Power
 
+XPowersPMU *g_pmu = nullptr;
+
 class Amoled18Power : public hal::Power {
  public:
   bool begin() override {
+    g_pmu = &pmu_;
     if (!pmu_.begin(Wire, pins::ADDR_PMIC, g_sda, g_scl)) {
       Serial.println("power: AXP2101 not found");
       return false;
@@ -412,7 +427,24 @@ bool boardBegin(BoardInfo &info) {
 
 bool bootButtonPressed() { return digitalRead(pins::BOOT_BUTTON) == LOW; }
 
+bool debugCodecWrite(uint8_t reg, uint8_t value) { return i2cWriteReg(pins::ADDR_CODEC, reg, value); }
+
+void debugRails(Print &out) {
+  if (!g_pmu) {
+    out.println("pmic: not initialised");
+    return;
+  }
+  out.printf("rails: DC1 %d/%u DC2 %d/%u DC3 %d/%u DC4 %d/%u DC5 %d/%u | ALDO1 %d/%u ALDO2 %d/%u ALDO3 %d/%u ALDO4 %d/%u | BLDO1 %d/%u BLDO2 %d/%u | vbus %u mV sys %u mV\n",
+             g_pmu->isEnableDC1(), g_pmu->getDC1Voltage(), g_pmu->isEnableDC2(), g_pmu->getDC2Voltage(),
+             g_pmu->isEnableDC3(), g_pmu->getDC3Voltage(), g_pmu->isEnableDC4(), g_pmu->getDC4Voltage(),
+             g_pmu->isEnableDC5(), g_pmu->getDC5Voltage(), g_pmu->isEnableALDO1(), g_pmu->getALDO1Voltage(),
+             g_pmu->isEnableALDO2(), g_pmu->getALDO2Voltage(), g_pmu->isEnableALDO3(), g_pmu->getALDO3Voltage(),
+             g_pmu->isEnableALDO4(), g_pmu->getALDO4Voltage(), g_pmu->isEnableBLDO1(), g_pmu->getBLDO1Voltage(),
+             g_pmu->isEnableBLDO2(), g_pmu->getBLDO2Voltage(), g_pmu->getVbusVoltage(), g_pmu->getSystemVoltage());
+}
+
 void debugAudio(Print &out) {
+  out.printf("mic raw peak: left %d right %d (of 32767)\n", g_micPeakL, g_micPeakR);
   out.printf("amp enable GPIO %d reads %d; i2s %s at %u Hz; codec %s\n", pins::AMP_ENABLE,
              digitalRead(pins::AMP_ENABLE), g_i2sUp ? "up" : "down", (unsigned)g_i2sRate, g_codec ? "created" : "none");
   out.print("ES8311 regs:");

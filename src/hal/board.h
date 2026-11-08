@@ -27,6 +27,8 @@ bool boardBegin(BoardInfo &info);
 
 bool bootButtonPressed();  // the BOOT side button, held right now
 void debugAudio(Print &out);  // amp pin read-back and codec registers, for the serial console
+bool debugCodecWrite(uint8_t reg, uint8_t value);  // poke an ES8311 register (diagnostics only)
+void debugRails(Print &out);  // PMIC rail states
 
 Display &display();
 Touch &touch();

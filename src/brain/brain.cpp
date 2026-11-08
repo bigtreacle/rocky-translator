@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "../listen/listen_engine.h"
 #include "../phrases/phrase_bank.h"
 #include "../synth/synth_engine.h"
 #include "../ui/translator_screen.h"
@@ -47,6 +48,15 @@ void setState(State s) {
 
 void decayBands(float toward, float rate) {
   for (int i = 0; i < 24; i++) g_model.bands[i] += (toward - g_model.bands[i]) * rate;
+}
+
+// Real spectrum from the microphone when the listening engine has a fresh
+// frame; the simulations below stand in when it does not (mic off or absent).
+bool micBands() {
+  float b[24];
+  if (!listen::getBands(b)) return false;
+  for (int i = 0; i < 24; i++) g_model.bands[i] = b[i];
+  return true;
 }
 
 // Low, slowly wandering noise floor: what an empty room looks like.
@@ -206,10 +216,12 @@ void tick(uint32_t nowMs) {
   g_now = nowMs;
   switch (g_state) {
     case State::Listening:
-      idleBands();
+      if (!listen::running() || !listen::enabled()) idleBands();
+      else micBands();  // keeps the last frame while the mic is gated during playback cooldown
       break;
     case State::Receiving:
-      speechBands();
+      if (!listen::running() || !listen::enabled()) speechBands();
+      else micBands();
       break;
     case State::NoteShown:
       decayBands(0.05f, 0.1f);

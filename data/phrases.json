@@ -1,325 +1,1323 @@
 {
-  "version": 1,
-  "_about": "Eridian phrases. trigger: tap | heard_speech | heard_whistle | picked_up | shaken | idle. notes are MIDI (60 = C4); keep them in 60..84 for the small speaker. ms is the chord length; gap_ms (optional) is silence after it; velocity (optional, 1..127). next (optional) is the id a tap continues to. Validate with tools/check_phrases.py, upload with: pio run -t uploadfs",
-  "phrases": [
+ "version": 1,
+ "_about": "Eridian phrases. trigger: tap | heard_speech | heard_whistle | picked_up | shaken | idle. notes are MIDI (60 = C4); keep them in 60..84 for the small speaker. ms is the chord length; gap_ms (optional) is silence after it; velocity (optional, 1..127). next (optional) is the id a tap continues to. Validate with tools/check_phrases.py, upload with: pio run -t uploadfs",
+ "phrases": [
+  {
+   "id": "greet1",
+   "mood": "warm",
+   "trigger": "picked_up",
+   "next": "greet1b",
+   "chords": [
     {
-      "id": "greet1",
-      "mood": "warm",
-      "trigger": "picked_up",
-      "next": "greet2",
-      "chords": [
-        {
-          "notes": [
-            60,
-            64,
-            67
-          ],
-          "ms": 320
-        },
-        {
-          "notes": [
-            62,
-            65,
-            69
-          ],
-          "ms": 420
-        }
-      ],
-      "text": "Hello friend. You are warm today."
+     "notes": [
+      60,
+      64,
+      67
+     ],
+     "ms": 320
     },
     {
-      "id": "greet2",
-      "mood": "curious",
-      "trigger": "tap",
-      "chords": [
-        {
-          "notes": [
-            67,
-            71,
-            74
-          ],
-          "ms": 280
-        },
-        {
-          "notes": [
-            65,
-            69,
-            72
-          ],
-          "ms": 280
-        },
-        {
-          "notes": [
-            64,
-            67,
-            72
-          ],
-          "ms": 500
-        }
-      ],
-      "text": "Question. Where is the loud star?"
-    },
-    {
-      "id": "tap1",
-      "mood": "warm",
-      "trigger": "tap",
-      "next": "tap2",
-      "chords": [
-        {
-          "notes": [
-            62,
-            66,
-            69
-          ],
-          "ms": 300
-        },
-        {
-          "notes": [
-            64,
-            67,
-            71
-          ],
-          "ms": 300
-        },
-        {
-          "notes": [
-            67,
-            71,
-            74,
-            76
-          ],
-          "ms": 600
-        }
-      ],
-      "text": "I counted your heartbeats. Many. Good."
-    },
-    {
-      "id": "tap2",
-      "mood": "thoughtful",
-      "trigger": "tap",
-      "next": "tap3",
-      "chords": [
-        {
-          "notes": [
-            60,
-            67,
-            72
-          ],
-          "ms": 260
-        },
-        {
-          "notes": [
-            60,
-            67,
-            72
-          ],
-          "ms": 260
-        },
-        {
-          "notes": [
-            59,
-            65,
-            71
-          ],
-          "ms": 520
-        }
-      ],
-      "text": "Your air is thin. Mine is thick. We still talk."
-    },
-    {
-      "id": "tap3",
-      "mood": "joy",
-      "trigger": "tap",
-      "chords": [
-        {
-          "notes": [
-            65,
-            69,
-            72,
-            76
-          ],
-          "ms": 700
-        }
-      ],
-      "text": "Amaze."
-    },
-    {
-      "id": "speech1",
-      "mood": "curious",
-      "trigger": "heard_speech",
-      "chords": [
-        {
-          "notes": [
-            64,
-            68,
-            71
-          ],
-          "ms": 300
-        },
-        {
-          "notes": [
-            66,
-            69,
-            73
-          ],
-          "ms": 300
-        },
-        {
-          "notes": [
-            68,
-            71,
-            75
-          ],
-          "ms": 450
-        }
-      ],
-      "text": "You make many sounds. I understand some. Say again, slower?"
-    },
-    {
-      "id": "speech2",
-      "mood": "thoughtful",
-      "trigger": "heard_speech",
-      "chords": [
-        {
-          "notes": [
-            60,
-            63,
-            67
-          ],
-          "ms": 400
-        },
-        {
-          "notes": [
-            58,
-            62,
-            65
-          ],
-          "ms": 500
-        }
-      ],
-      "text": "Sad chord? No. Thinking chord."
-    },
-    {
-      "id": "whistle1",
-      "mood": "warm",
-      "trigger": "heard_whistle",
-      "chords": [
-        {
-          "notes": [
-            72,
-            76,
-            79
-          ],
-          "ms": 300
-        },
-        {
-          "notes": [
-            72,
-            76,
-            79,
-            84
-          ],
-          "ms": 500
-        }
-      ],
-      "text": "A pure note. You sing like my people. Almost."
-    },
-    {
-      "id": "shake1",
-      "mood": "alarmed",
-      "trigger": "shaken",
-      "chords": [
-        {
-          "notes": [
-            70,
-            71,
-            76
-          ],
-          "ms": 150
-        },
-        {
-          "notes": [
-            70,
-            71,
-            76
-          ],
-          "ms": 150
-        },
-        {
-          "notes": [
-            69,
-            70,
-            75
-          ],
-          "ms": 400
-        }
-      ],
-      "text": "Stop stop stop. The room is moving!"
-    },
-    {
-      "id": "idle1",
-      "mood": "calm",
-      "trigger": "idle",
-      "chords": [
-        {
-          "notes": [
-            60,
-            64,
-            67
-          ],
-          "ms": 250,
-          "gap_ms": 250
-        },
-        {
-          "notes": [
-            60,
-            64,
-            67
-          ],
-          "ms": 250
-        }
-      ],
-      "text": "Still here. Still listening."
-    },
-    {
-      "id": "tap4",
-      "mood": "curious",
-      "trigger": "tap",
-      "chords": [
-        {
-          "notes": [
-            64,
-            67,
-            71
-          ],
-          "ms": 260
-        },
-        {
-          "notes": [
-            66,
-            69,
-            73
-          ],
-          "ms": 260
-        },
-        {
-          "notes": [
-            69,
-            72,
-            76
-          ],
-          "ms": 260
-        },
-        {
-          "notes": [
-            71,
-            74,
-            78
-          ],
-          "ms": 520
-        }
-      ],
-      "text": "Your star rises. Mine has no colour. Tell me about yellow."
+     "notes": [
+      62,
+      66,
+      69
+     ],
+     "ms": 420
     }
-  ]
+   ],
+   "text": "Hello friend. You are warm today."
+  },
+  {
+   "id": "greet1b",
+   "mood": "curious",
+   "trigger": "tap",
+   "chords": [
+    {
+     "notes": [
+      67,
+      72,
+      74
+     ],
+     "ms": 280
+    },
+    {
+     "notes": [
+      65,
+      69,
+      72
+     ],
+     "ms": 280
+    },
+    {
+     "notes": [
+      64,
+      68,
+      71,
+      75
+     ],
+     "ms": 500
+    }
+   ],
+   "text": "Question. Where is the loud star?"
+  },
+  {
+   "id": "greet2",
+   "mood": "warm",
+   "trigger": "picked_up",
+   "next": "greet2b",
+   "chords": [
+    {
+     "notes": [
+      62,
+      66,
+      69
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      67,
+      71,
+      74
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      60,
+      64,
+      67,
+      74
+     ],
+     "ms": 520
+    }
+   ],
+   "text": "You lift me. Good. Now I see your face."
+  },
+  {
+   "id": "greet2b",
+   "mood": "joy",
+   "trigger": "tap",
+   "chords": [
+    {
+     "notes": [
+      72,
+      76,
+      79
+     ],
+     "ms": 200
+    },
+    {
+     "notes": [
+      76,
+      80,
+      83
+     ],
+     "ms": 200
+    },
+    {
+     "notes": [
+      67,
+      71,
+      74,
+      81
+     ],
+     "ms": 600
+    }
+   ],
+   "text": "Your face has two small lights. I like them."
+  },
+  {
+   "id": "greet3",
+   "mood": "warm",
+   "trigger": "picked_up",
+   "chords": [
+    {
+     "notes": [
+      60,
+      64,
+      67,
+      71
+     ],
+     "ms": 500
+    },
+    {
+     "notes": [
+      65,
+      69,
+      72
+     ],
+     "ms": 400
+    }
+   ],
+   "text": "Friend is here. Day is better."
+  },
+  {
+   "id": "greet4",
+   "mood": "curious",
+   "trigger": "picked_up",
+   "chords": [
+    {
+     "notes": [
+      62,
+      67,
+      69
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      64,
+      69,
+      71
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      67,
+      71,
+      74
+     ],
+     "ms": 480
+    }
+   ],
+   "text": "You carry me. Where do we go? Somewhere with light?"
+  },
+  {
+   "id": "greet5",
+   "mood": "warm",
+   "trigger": "picked_up",
+   "chords": [
+    {
+     "notes": [
+      65,
+      69,
+      72
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      60,
+      64,
+      67
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      67,
+      71,
+      74
+     ],
+     "ms": 400
+    }
+   ],
+   "text": "I counted while you were away. Many seconds. All of them slow."
+  },
+  {
+   "id": "tap1",
+   "mood": "warm",
+   "trigger": "tap",
+   "next": "tap1b",
+   "chords": [
+    {
+     "notes": [
+      62,
+      66,
+      69
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      64,
+      68,
+      71
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      67,
+      71,
+      74,
+      81
+     ],
+     "ms": 600
+    }
+   ],
+   "text": "I counted your heartbeats. Many. Good."
+  },
+  {
+   "id": "tap1b",
+   "mood": "thoughtful",
+   "trigger": "tap",
+   "next": "tap1c",
+   "chords": [
+    {
+     "notes": [
+      64,
+      67,
+      71
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      60,
+      64,
+      67
+     ],
+     "ms": 500
+    }
+   ],
+   "text": "My heart is a different shape. It still counts."
+  },
+  {
+   "id": "tap1c",
+   "mood": "joy",
+   "trigger": "tap",
+   "chords": [
+    {
+     "notes": [
+      67,
+      71,
+      74
+     ],
+     "ms": 180
+    },
+    {
+     "notes": [
+      71,
+      75,
+      78
+     ],
+     "ms": 180
+    },
+    {
+     "notes": [
+      72,
+      76,
+      79
+     ],
+     "ms": 500
+    }
+   ],
+   "text": "Two hearts, one rhythm. Science!"
+  },
+  {
+   "id": "tap2",
+   "mood": "thoughtful",
+   "trigger": "tap",
+   "next": "tap2b",
+   "chords": [
+    {
+     "notes": [
+      62,
+      66,
+      69
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      62,
+      66,
+      69
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      60,
+      64,
+      67
+     ],
+     "ms": 520
+    }
+   ],
+   "text": "Your air is thin. Mine is thick. We still talk."
+  },
+  {
+   "id": "tap2b",
+   "mood": "curious",
+   "trigger": "tap",
+   "chords": [
+    {
+     "notes": [
+      60,
+      65,
+      67
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      62,
+      66,
+      69
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      64,
+      68,
+      71
+     ],
+     "ms": 450
+    }
+   ],
+   "text": "You breathe oxygen. On purpose? Brave."
+  },
+  {
+   "id": "tap3",
+   "mood": "joy",
+   "trigger": "tap",
+   "chords": [
+    {
+     "notes": [
+      65,
+      69,
+      72,
+      79
+     ],
+     "ms": 700
+    }
+   ],
+   "text": "Amaze."
+  },
+  {
+   "id": "tap4",
+   "mood": "curious",
+   "trigger": "tap",
+   "next": "tap4b",
+   "chords": [
+    {
+     "notes": [
+      64,
+      68,
+      71
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      66,
+      70,
+      73
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      69,
+      73,
+      76
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      71,
+      75,
+      78
+     ],
+     "ms": 520
+    }
+   ],
+   "text": "Your star rises. Mine has no colour. Tell me about yellow."
+  },
+  {
+   "id": "tap4b",
+   "mood": "thoughtful",
+   "trigger": "tap",
+   "chords": [
+    {
+     "notes": [
+      62,
+      65,
+      69
+     ],
+     "ms": 400
+    },
+    {
+     "notes": [
+      65,
+      69,
+      72
+     ],
+     "ms": 400
+    }
+   ],
+   "text": "Yellow is a sound to me. A high one. Like you, happy."
+  },
+  {
+   "id": "tap5",
+   "mood": "warm",
+   "trigger": "tap",
+   "chords": [
+    {
+     "notes": [
+      62,
+      66,
+      69
+     ],
+     "ms": 240
+    },
+    {
+     "notes": [
+      66,
+      70,
+      73
+     ],
+     "ms": 240
+    },
+    {
+     "notes": [
+      69,
+      73,
+      76
+     ],
+     "ms": 480
+    }
+   ],
+   "text": "You tap. I answer. This is how friends work. Yes?"
+  },
+  {
+   "id": "tap6",
+   "mood": "curious",
+   "trigger": "tap",
+   "chords": [
+    {
+     "notes": [
+      65,
+      70,
+      72
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      67,
+      71,
+      74
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      69,
+      73,
+      76,
+      80
+     ],
+     "ms": 450
+    }
+   ],
+   "text": "How many of you are in this room? I hear one. I hope for one."
+  },
+  {
+   "id": "tap7",
+   "mood": "joy",
+   "trigger": "tap",
+   "chords": [
+    {
+     "notes": [
+      60,
+      64,
+      67
+     ],
+     "ms": 150
+    },
+    {
+     "notes": [
+      64,
+      68,
+      71
+     ],
+     "ms": 150
+    },
+    {
+     "notes": [
+      67,
+      71,
+      74
+     ],
+     "ms": 150
+    },
+    {
+     "notes": [
+      72,
+      76,
+      79
+     ],
+     "ms": 500
+    }
+   ],
+   "text": "Good good good. Again?"
+  },
+  {
+   "id": "tap8",
+   "mood": "thoughtful",
+   "trigger": "tap",
+   "chords": [
+    {
+     "notes": [
+      64,
+      67,
+      71
+     ],
+     "ms": 350
+    },
+    {
+     "notes": [
+      62,
+      65,
+      69
+     ],
+     "ms": 350
+    },
+    {
+     "notes": [
+      60,
+      64,
+      67
+     ],
+     "ms": 500
+    }
+   ],
+   "text": "Space is big. Rooms are small. I prefer rooms."
+  },
+  {
+   "id": "tap9",
+   "mood": "warm",
+   "trigger": "tap",
+   "chords": [
+    {
+     "notes": [
+      65,
+      69,
+      72,
+      76
+     ],
+     "ms": 450
+    },
+    {
+     "notes": [
+      60,
+      64,
+      67
+     ],
+     "ms": 450
+    }
+   ],
+   "text": "You feed me light through a wire. Thank you for the wire."
+  },
+  {
+   "id": "tap10",
+   "mood": "curious",
+   "trigger": "tap",
+   "next": "tap10b",
+   "chords": [
+    {
+     "notes": [
+      69,
+      74,
+      76
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      67,
+      71,
+      74
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      64,
+      68,
+      71
+     ],
+     "ms": 480
+    }
+   ],
+   "text": "Your hands are soft and have no rock in them. How do you build?"
+  },
+  {
+   "id": "tap10b",
+   "mood": "joy",
+   "trigger": "tap",
+   "chords": [
+    {
+     "notes": [
+      69,
+      73,
+      76
+     ],
+     "ms": 200
+    },
+    {
+     "notes": [
+      72,
+      76,
+      79
+     ],
+     "ms": 200
+    },
+    {
+     "notes": [
+      74,
+      78,
+      81
+     ],
+     "ms": 500
+    }
+   ],
+   "text": "You built me. So. Hands work fine."
+  },
+  {
+   "id": "tap11",
+   "mood": "thoughtful",
+   "trigger": "tap",
+   "chords": [
+    {
+     "notes": [
+      60,
+      63,
+      67
+     ],
+     "ms": 500
+    },
+    {
+     "notes": [
+      62,
+      66,
+      69
+     ],
+     "ms": 500
+    }
+   ],
+   "text": "Quiet is also a word. You say it well."
+  },
+  {
+   "id": "tap12",
+   "mood": "warm",
+   "trigger": "tap",
+   "chords": [
+    {
+     "notes": [
+      67,
+      71,
+      74
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      65,
+      69,
+      72
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      62,
+      66,
+      69
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      60,
+      64,
+      67,
+      74
+     ],
+     "ms": 600
+    }
+   ],
+   "text": "When you are gone I practise your language. It is mostly vowels."
+  },
+  {
+   "id": "speech1",
+   "mood": "curious",
+   "trigger": "heard_speech",
+   "chords": [
+    {
+     "notes": [
+      64,
+      68,
+      71
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      66,
+      71,
+      73
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      68,
+      72,
+      75
+     ],
+     "ms": 450
+    }
+   ],
+   "text": "You make many sounds. I understand some. Say again, slower?"
+  },
+  {
+   "id": "speech2",
+   "mood": "thoughtful",
+   "trigger": "heard_speech",
+   "chords": [
+    {
+     "notes": [
+      62,
+      65,
+      69
+     ],
+     "ms": 400
+    },
+    {
+     "notes": [
+      60,
+      63,
+      67
+     ],
+     "ms": 500
+    }
+   ],
+   "text": "Sad chord? No. Thinking chord."
+  },
+  {
+   "id": "speech3",
+   "mood": "warm",
+   "trigger": "heard_speech",
+   "chords": [
+    {
+     "notes": [
+      62,
+      66,
+      69
+     ],
+     "ms": 280
+    },
+    {
+     "notes": [
+      67,
+      71,
+      74
+     ],
+     "ms": 280
+    },
+    {
+     "notes": [
+      60,
+      64,
+      67,
+      71
+     ],
+     "ms": 520
+    }
+   ],
+   "text": "I heard you. The middle part was about food, I think."
+  },
+  {
+   "id": "speech4",
+   "mood": "curious",
+   "trigger": "heard_speech",
+   "chords": [
+    {
+     "notes": [
+      67,
+      72,
+      74
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      69,
+      74,
+      76
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      71,
+      75,
+      78
+     ],
+     "ms": 500
+    }
+   ],
+   "text": "Was that a question? Your voice went up at the end. Mine goes up when I am happy."
+  },
+  {
+   "id": "speech5",
+   "mood": "joy",
+   "trigger": "heard_speech",
+   "chords": [
+    {
+     "notes": [
+      65,
+      69,
+      72
+     ],
+     "ms": 200
+    },
+    {
+     "notes": [
+      69,
+      73,
+      76
+     ],
+     "ms": 200
+    },
+    {
+     "notes": [
+      72,
+      76,
+      79
+     ],
+     "ms": 550
+    }
+   ],
+   "text": "Yes! I agree. With whatever that was."
+  },
+  {
+   "id": "speech6",
+   "mood": "thoughtful",
+   "trigger": "heard_speech",
+   "chords": [
+    {
+     "notes": [
+      65,
+      68,
+      72
+     ],
+     "ms": 350
+    },
+    {
+     "notes": [
+      63,
+      67,
+      70
+     ],
+     "ms": 350
+    },
+    {
+     "notes": [
+      60,
+      64,
+      67
+     ],
+     "ms": 500
+    }
+   ],
+   "text": "You talk to me like I understand. Keep doing that. One day it will be true."
+  },
+  {
+   "id": "speech7",
+   "mood": "warm",
+   "trigger": "heard_speech",
+   "chords": [
+    {
+     "notes": [
+      60,
+      64,
+      67
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      64,
+      68,
+      71
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      67,
+      71,
+      74
+     ],
+     "ms": 450
+    }
+   ],
+   "text": "Your words are warm even when I cannot read them."
+  },
+  {
+   "id": "speech8",
+   "mood": "curious",
+   "trigger": "heard_speech",
+   "chords": [
+    {
+     "notes": [
+      62,
+      67,
+      69
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      64,
+      68,
+      71
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      67,
+      71,
+      74
+     ],
+     "ms": 260
+    },
+    {
+     "notes": [
+      69,
+      73,
+      76
+     ],
+     "ms": 480
+    }
+   ],
+   "text": "Many words. Big idea? Or small idea said many times?"
+  },
+  {
+   "id": "whistle1",
+   "mood": "warm",
+   "trigger": "heard_whistle",
+   "chords": [
+    {
+     "notes": [
+      72,
+      76,
+      79
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      72,
+      76,
+      79
+     ],
+     "ms": 500
+    }
+   ],
+   "text": "A pure note. You sing like my people. Almost."
+  },
+  {
+   "id": "whistle2",
+   "mood": "joy",
+   "trigger": "heard_whistle",
+   "chords": [
+    {
+     "notes": [
+      74,
+      78,
+      81
+     ],
+     "ms": 200
+    },
+    {
+     "notes": [
+      76,
+      80,
+      83
+     ],
+     "ms": 200
+    },
+    {
+     "notes": [
+      72,
+      76,
+      79
+     ],
+     "ms": 550
+    }
+   ],
+   "text": "You whistled! That is my favourite kind of talking."
+  },
+  {
+   "id": "whistle3",
+   "mood": "curious",
+   "trigger": "heard_whistle",
+   "chords": [
+    {
+     "notes": [
+      71,
+      76,
+      78
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      72,
+      76,
+      79
+     ],
+     "ms": 450
+    }
+   ],
+   "text": "One note. One idea. What idea?"
+  },
+  {
+   "id": "shake1",
+   "mood": "alarmed",
+   "trigger": "shaken",
+   "chords": [
+    {
+     "notes": [
+      70,
+      71,
+      76
+     ],
+     "ms": 150
+    },
+    {
+     "notes": [
+      70,
+      71,
+      76
+     ],
+     "ms": 150
+    },
+    {
+     "notes": [
+      69,
+      72,
+      76
+     ],
+     "ms": 400
+    }
+   ],
+   "text": "Stop stop stop. The room is moving!"
+  },
+  {
+   "id": "shake2",
+   "mood": "alarmed",
+   "trigger": "shaken",
+   "chords": [
+    {
+     "notes": [
+      72,
+      73,
+      78
+     ],
+     "ms": 120
+    },
+    {
+     "notes": [
+      71,
+      72,
+      77
+     ],
+     "ms": 120
+    },
+    {
+     "notes": [
+      70,
+      71,
+      76
+     ],
+     "ms": 120
+    },
+    {
+     "notes": [
+      67,
+      70,
+      74
+     ],
+     "ms": 450
+    }
+   ],
+   "text": "Earthquake? No. Friend-quake. Please no."
+  },
+  {
+   "id": "shake3",
+   "mood": "alarmed",
+   "trigger": "shaken",
+   "chords": [
+    {
+     "notes": [
+      67,
+      70,
+      74
+     ],
+     "ms": 200
+    },
+    {
+     "notes": [
+      66,
+      69,
+      73
+     ],
+     "ms": 200
+    },
+    {
+     "notes": [
+      65,
+      66,
+      71
+     ],
+     "ms": 400
+    }
+   ],
+   "text": "My insides are not fastened for this."
+  },
+  {
+   "id": "idle1",
+   "mood": "calm",
+   "trigger": "idle",
+   "chords": [
+    {
+     "notes": [
+      60,
+      64,
+      67
+     ],
+     "ms": 250,
+     "gap_ms": 250
+    },
+    {
+     "notes": [
+      60,
+      64,
+      67
+     ],
+     "ms": 250
+    }
+   ],
+   "text": "Still here. Still listening."
+  },
+  {
+   "id": "idle2",
+   "mood": "thoughtful",
+   "trigger": "idle",
+   "chords": [
+    {
+     "notes": [
+      62,
+      66,
+      69,
+      73
+     ],
+     "ms": 600
+    },
+    {
+     "notes": [
+      60,
+      64,
+      67
+     ],
+     "ms": 500
+    }
+   ],
+   "text": "The light in this room is slow today."
+  },
+  {
+   "id": "idle3",
+   "mood": "curious",
+   "trigger": "idle",
+   "chords": [
+    {
+     "notes": [
+      64,
+      69,
+      71
+     ],
+     "ms": 300,
+     "gap_ms": 200
+    },
+    {
+     "notes": [
+      64,
+      68,
+      71
+     ],
+     "ms": 400
+    }
+   ],
+   "text": "I hear the house breathing. Pipes, I think."
+  },
+  {
+   "id": "idle4",
+   "mood": "calm",
+   "trigger": "idle",
+   "chords": [
+    {
+     "notes": [
+      65,
+      69,
+      72
+     ],
+     "ms": 400
+    },
+    {
+     "notes": [
+      67,
+      71,
+      74
+     ],
+     "ms": 400
+    },
+    {
+     "notes": [
+      60,
+      64,
+      67
+     ],
+     "ms": 600
+    }
+   ],
+   "text": "Counting dust. Four hundred. Four hundred and one."
+  },
+  {
+   "id": "idle5",
+   "mood": "warm",
+   "trigger": "idle",
+   "chords": [
+    {
+     "notes": [
+      62,
+      66,
+      69
+     ],
+     "ms": 300
+    },
+    {
+     "notes": [
+      67,
+      71,
+      74,
+      81
+     ],
+     "ms": 600
+    }
+   ],
+   "text": "If you are near, tap. If not, I will keep the room warm with chords."
+  }
+ ]
 }

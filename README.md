@@ -104,7 +104,7 @@ amber dot that follows a finger.
 2. (Done 2026-11-08: I2C is SDA 15 / SCL 14; the board is V2.)
 3. (Done: touch is quick with INT gating; no x offset needed on this V2 board.
    It lands slightly low; measure and add a y offset if it bothers you.)
-4. GPIO 46 at 3.3 V with a meter after boot.
+4. (Done: GPIO 46 drives the amplifier enable; verified by ear on day one.)
 5. Whether the TCA9554's INT output reaches an ESP32 pin (schematic).
 6. (Done: bezel corners are rounded, radius about 55-80 px; see DESIGN.md §9.)
 

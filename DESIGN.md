@@ -617,7 +617,8 @@ report arrived or a finger was down last time. The UI reacts on finger-down
 (`LV_EVENT_PRESSED`), not on release, so quick and slightly sliding taps
 count. USB CDC writes must not block when no host reads
 (`Serial.setTxTimeoutMs(0)`), or every print stalls the loop for 100 ms.
-Touch lands slightly low; a y offset may be needed. GPIO 46 not yet metered.
+Touch lands slightly low; a y offset may be needed. GPIO 46 (amp enable)
+proven by ear: tone, silence while it was held low, tone again.
 Audio is a stub until M1.
 
 Day-1 checklist before any of that, with the board in hand:
@@ -799,7 +800,7 @@ both.
 | Board is V1 or V2 and the two differ in panel and touch chip | Probe I2C 0x15 then 0x38 at boot; both panel and both touch drivers compiled in; column offset follows the probe |
 | Panel stays black | Known cause: expander reset not pulsed before SPI init (Waveshare BSP issue #12). Pulse EXIO0/1/2 first, always |
 | I2C SDA/SCL order disagrees between Waveshare sources and the Arduino variant | Scan both ways on day 1; hard-code in `pins.h` |
-| GPIO 46 amp enable is a strapping pin and one user could not drive it | Set as output after boot; measure; if it truly will not drive, it is a hardware question for Waveshare, not firmware |
+| GPIO 46 amp enable is a strapping pin and one user could not drive it | Resolved: configured as an output after boot it drives the amplifier (verified by holding it low mid-tone) |
 | Mixing the legacy `Wire` I2C driver with libraries using the new `i2c_master` driver aborts the core ("CONFLICT! driver_ng") | Every I2C user goes through `Wire`: Arduino_GFX, Arduino_DriveBus, Adafruit XCA9554, XPowersLib, SensorLib, the vendored es8311.c. Do not add ESP32_IO_Expander or any esp_lcd_touch component |
 | Speaker too quiet or boomy | Voicing clamp to C4–C6, bass cut, wavetable blend as settings; test on day 1 of M1 |
 | Mic hears the speaker through the case | Hard gate while playing + 300 ms cooldown; if still triggering, add a 1 s cooldown and raise the threshold right after playback |

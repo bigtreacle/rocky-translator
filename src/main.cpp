@@ -23,6 +23,7 @@
 #include <Arduino.h>
 #include <LittleFS.h>
 #include <WiFi.h>
+#include <esp_ota_ops.h>
 
 #include "brain/brain.h"
 #include "listen/listen_engine.h"
@@ -161,6 +162,17 @@ static void handleSerial() {
         Serial.printf("wifi mode %d, status %d, AP '%s' ip %s, stations %d, STA ip %s\n", (int)WiFi.getMode(), (int)WiFi.status(),
                       WiFi.softAPSSID().c_str(), WiFi.softAPIP().toString().c_str(), WiFi.softAPgetStationNum(),
                       WiFi.localIP().toString().c_str());
+      else if (!strcmp(cmd, "otastat")) {
+        const esp_partition_t *run = esp_ota_get_running_partition();
+        esp_ota_img_states_t st;
+        const char *name = "?";
+        if (esp_ota_get_state_partition(run, &st) == ESP_OK) {
+          name = st == ESP_OTA_IMG_NEW ? "new" : st == ESP_OTA_IMG_PENDING_VERIFY ? "pending verify"
+               : st == ESP_OTA_IMG_VALID ? "valid" : st == ESP_OTA_IMG_INVALID ? "invalid"
+               : st == ESP_OTA_IMG_ABORTED ? "aborted" : "undefined";
+        }
+        Serial.printf("ota: running %s (%s), version %s, state %s\n", run ? run->label : "?", BOARD_VARIANT, FIRMWARE_VERSION, name);
+      }
       else if (!strcmp(cmd, "wifi")) net::startWifiSetup();
       else if (!strcmp(cmd, "update")) net::checkUpdatesNow();
       else if (!strcmp(cmd, "wifireset")) net::forgetWifi();

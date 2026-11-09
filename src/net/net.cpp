@@ -44,11 +44,16 @@ void setPhase(Phase p) {
   g_phaseSince = millis();
 }
 
-// Reads the stored SSID once; the driver must be initialised for that.
+// Reads the stored SSID once. The driver only exposes its saved config once a
+// connection with it has been requested, so start one and stop it again.
 void refreshCreds() {
   WiFi.mode(WIFI_STA);
-  delay(50);
+  WiFi.begin();  // stored credentials, if any
+  uint32_t t0 = millis();
+  while (WiFi.SSID().length() == 0 && millis() - t0 < 300) delay(10);
   g_haveCreds = WiFi.SSID().length() > 0;
+  Serial.printf("net: saved Wi-Fi %s\n", g_haveCreds ? WiFi.SSID().c_str() : "(none)");
+  WiFi.disconnect(true, false);  // radio off, credentials kept
   WiFi.mode(WIFI_OFF);
 }
 
@@ -94,14 +99,18 @@ void runCheck() {
 
 void startConnect(bool manual) {
   g_manual = manual;
-  if (!hasCredentials()) {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin();  // stored credentials
+  uint32_t t0 = millis();
+  while (WiFi.SSID().length() == 0 && millis() - t0 < 300) delay(10);
+  g_haveCreds = WiFi.SSID().length() > 0;
+  if (!g_haveCreds) {
     setStatus("No Wi-Fi saved. Use Wi-Fi setup first.");
+    radioOff();
     setPhase(Phase::Idle);
     return;
   }
   setStatus("Connecting to %s", WiFi.SSID().c_str());
-  WiFi.mode(WIFI_STA);
-  WiFi.begin();  // stored credentials
   setPhase(Phase::Connecting);
 }
 

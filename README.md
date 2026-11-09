@@ -4,8 +4,8 @@ A handheld desk toy that speaks in chords and listens back, on the Waveshare
 ESP32-S3-Touch-AMOLED-1.8. `rocky-translator-brief.md` is the brief,
 `DESIGN.md` the design and build plan. State: **all six milestones built and
 tested on a V2 board** (2026-11-08/09; see the status notes in DESIGN.md §14),
-except that no firmware release has been published yet because the project
-has no GitHub repository. Pick it up and it greets you, shake it and it complains,
+including a real over-the-air update: v0.1.0 was published from a tag and
+installed itself on the board. Pick it up and it greets you, shake it and it complains,
 turn it face down and it sleeps; it dims after a minute and switches the
 screen off after five. The power button short-press toggles the screen,
 a long press powers off. It listens:

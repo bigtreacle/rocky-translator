@@ -775,6 +775,18 @@ ends after 60 s, so it could never fire at the real 3-8 min cadence; it may
 now start from standby (waking the screen for the phrase) and stops 30 min
 after the last real interaction so the device can still sleep.
 
+OTA verified 2026-11-09, end to end: `git tag v0.1.0` + push -> GitHub
+Actions built `eridian-amoled18.bin` and published the release with
+`manifest.json` in about 4.5 min; a manual check on the board connected to
+the home Wi-Fi, fetched the manifest, downloaded 2.5 MB, verified the
+SHA-256, restarted into 0.1.0, and marked the image valid 60 s later
+("rollback cancelled"). The dev build's automatic check at 90 s saw the
+release and correctly skipped it. v0.1.0 shipped one bug: it could not see
+its saved Wi-Fi at boot (the driver exposes the stored SSID only after a
+connection is requested), fixed in the next commit and tagged v0.1.1; units
+on 0.1.0 pick it up through "Wi-Fi setup" (which runs a check after
+joining) or by USB.
+
 Repositories: code on Simon's Gitea (`git.bustamantedick.com`, sign-in
 required, so devices cannot fetch from it); `bigtreacle/rocky-translator` on
 GitHub is a public mirror that builds and hosts releases; `origin` pushes to

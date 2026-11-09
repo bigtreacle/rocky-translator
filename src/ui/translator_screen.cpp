@@ -23,6 +23,7 @@ lv_obj_t *g_cursor = nullptr;
 lv_timer_t *g_typeTimer = nullptr;
 lv_timer_t *g_blinkTimer = nullptr;
 void (*g_tap)() = nullptr;
+void (*g_long)() = nullptr;
 
 char g_full[512];
 size_t g_typed = 0;
@@ -79,6 +80,9 @@ void blinkTick(lv_timer_t *) {
 void tapCb(lv_event_t *) {
   if (g_tap) g_tap();
 }
+void longCb(lv_event_t *) {
+  if (g_long) g_long();
+}
 
 lv_obj_t *label(lv_obj_t *parent, const lv_font_t *font, uint32_t color) {
   lv_obj_t *l = lv_label_create(parent);
@@ -98,6 +102,7 @@ void create() {
   // React on finger-down, not on release: immediate, and a finger that slides a
   // little still counts as a tap.
   lv_obj_add_event_cb(scr, tapCb, LV_EVENT_PRESSED, nullptr);
+  lv_obj_add_event_cb(scr, longCb, LV_EVENT_LONG_PRESSED, nullptr);
 
   const int W = theme::W - 2 * theme::ROOT_INSET;
   const int H = theme::H - 2 * theme::ROOT_INSET;
@@ -108,6 +113,7 @@ void create() {
   lv_obj_set_size(g_root, W, H);
   lv_obj_set_scrollable(g_root, false);
   lv_obj_add_event_cb(g_root, tapCb, LV_EVENT_PRESSED, nullptr);
+  lv_obj_add_event_cb(g_root, longCb, LV_EVENT_LONG_PRESSED, nullptr);
 
   // Status strip: dot, word, battery. Inset from the sides to clear the rounded corners.
   int left = theme::CORNER_INSET - theme::ROOT_INSET;
@@ -230,6 +236,7 @@ void shiftForBurnIn() {
 }
 
 void setTapHandler(void (*fn)()) { g_tap = fn; }
+void setLongPressHandler(void (*fn)()) { g_long = fn; }
 
 void setVisible(bool on) {
   if (g_root) lv_obj_set_hidden(g_root, !on);

@@ -14,22 +14,28 @@
 //   vol <0-100>    codec volume             audio      synth diagnostics
 //   imu            accelerometer and gesture state      timers 1|0  5 s / 15 s test timers
 //   standby | off | wake   force the power mode          bright <20-100>  brightness cap (saved)
+//   wifi           open the Wi-Fi setup portal   update   check GitHub for a release now
+//   wifireset      forget the saved Wi-Fi
 //   m0             the M0 hardware test screen (reset to come back)
 //
 // Sound: the BOOT side button toggles mute. The device boots muted the first
 // time and remembers the last setting.
 #include <Arduino.h>
 #include <LittleFS.h>
+#include <WiFi.h>
 
 #include "brain/brain.h"
 #include "listen/listen_engine.h"
 #include "motion/gestures.h"
+#include "net/net.h"
+#include "ota/ota.h"
 #include "phrases/phrase_bank.h"
 #include "power/power_manager.h"
 #include "synth/synth_engine.h"
 #include "hal/board.h"
 #include "ui/bringup_screen.h"
 #include "ui/lvgl_port.h"
+#include "ui/settings_screen.h"
 #include "ui/standby_screen.h"
 #include "ui/translator_screen.h"
 #include "version.h"
@@ -45,7 +51,33 @@ static void onTap() {
     return;
   }
   power::activity(millis());
+  if (ui::settings::isOpen()) return;
   brain::onTap();
+}
+
+static void openSettings() {
+  ui::settings::Values v;
+  v.volume = 60;  // replaced below from the synth
+  v.muted = synth::muted();
+  v.bassCut = true;
+  v.sensitivity = listen::sensitivityDb();
+  v.listening = listen::enabled();
+  v.idleChatter = brain::idleChatter();
+  v.mirrorReply = brain::mirrorReply();
+  v.brightness = power::brightnessCap();
+  v.version = FIRMWARE_VERSION;
+  v.volume = synth::volume();
+  v.bassCut = synth::bassCut();
+  v.wifi = net::statusLine();
+  ui::settings::open(v);
+  ota::markValid();  // the owner is here and the UI works: this build is good
+  power::activity(millis());
+  Serial.println("settings: open");
+}
+
+static void onLongPress() {
+  if (power::mode() != power::Mode::Active) return;
+  if (!ui::settings::isOpen()) openSettings();
 }
 
 static void toggleMute() {
@@ -124,6 +156,16 @@ static void handleSerial() {
       else if (!strcmp(cmd, "off")) power::off(millis());
       else if (!strcmp(cmd, "wake")) power::wake(millis());
       else if (!strcmp(cmd, "bright")) { power::setBrightnessCap((uint8_t)arg); Serial.printf("brightness cap %u\n", power::brightnessCap()); }
+      else if (!strcmp(cmd, "heap")) Serial.printf("heap free %u KB, largest %u KB, psram free %u KB\n", (unsigned)(ESP.getFreeHeap() / 1024), (unsigned)(ESP.getMaxAllocHeap() / 1024), (unsigned)(ESP.getFreePsram() / 1024));
+      else if (!strcmp(cmd, "wifistat"))
+        Serial.printf("wifi mode %d, status %d, AP '%s' ip %s, stations %d, STA ip %s\n", (int)WiFi.getMode(), (int)WiFi.status(),
+                      WiFi.softAPSSID().c_str(), WiFi.softAPIP().toString().c_str(), WiFi.softAPgetStationNum(),
+                      WiFi.localIP().toString().c_str());
+      else if (!strcmp(cmd, "wifi")) net::startWifiSetup();
+      else if (!strcmp(cmd, "update")) net::checkUpdatesNow();
+      else if (!strcmp(cmd, "wifireset")) net::forgetWifi();
+      else if (!strcmp(cmd, "settings")) { if (ui::settings::isOpen()) ui::settings::close(); else openSettings(); }
+      else if (!strcmp(cmd, "chatter")) { brain::setIdleChatter(arg != 0); brain::setChatterTestCadence(arg == 2); Serial.printf("idle chatter %s%s\n", arg ? "on" : "off", arg == 2 ? " (fast test cadence)" : ""); }
       else if (!strcmp(cmd, "reload")) Serial.printf("phrases: %d (%s)\n", phrases::reload(), phrases::source());
       else if (!strcmp(cmd, "phrases")) {
         for (int i = 0; i < phrases::count(); i++) {
@@ -146,6 +188,7 @@ void setup() {
   while (!Serial && millis() - t0 < 2000) delay(10);
 
   Serial.printf("\nEridian Translator %s (%s)\n", FIRMWARE_VERSION, BOARD_VARIANT);
+  ota::begin();
   bool boardOk = hal::boardBegin(g_info);
   Serial.printf("board: %s, %s, I2C SDA %d SCL %d, %d devices\n", g_info.name, g_info.revision, g_info.sda,
                 g_info.scl, g_info.i2cFoundCount);
@@ -164,7 +207,20 @@ void setup() {
   if (displayOk && ui::lvglBegin(hal::display(), hal::touch())) {
     ui::translator::create();
     ui::translator::setTapHandler(onTap);
+    ui::translator::setLongPressHandler(onLongPress);
     ui::standby::create();
+    ui::settings::Hooks h;
+    h.setVolume = [](uint8_t v) { synth::setVolume(v); };
+    h.setMuted = [](bool m) { synth::setMuted(m); brain::setMuted(m); };
+    h.setBassCut = [](bool b) { synth::setBassCut(b); };
+    h.setSensitivity = [](int d) { listen::setSensitivityDb(d); };
+    h.setListening = [](bool on) { listen::setEnabled(on); };
+    h.setIdleChatter = [](bool on) { brain::setIdleChatter(on); };
+    h.setMirrorReply = [](bool on) { brain::setMirrorReply(on); };
+    h.setBrightness = [](uint8_t b) { power::setBrightnessCap(b); };
+    h.wifiSetup = []() { net::startWifiSetup(); };
+    h.checkUpdates = []() { net::checkUpdatesNow(); };
+    ui::settings::create(h);
   }
   motion::begin();
   if (!LittleFS.begin(false)) Serial.println("littlefs: mount failed (run: pio run -t uploadfs)");
@@ -172,6 +228,7 @@ void setup() {
   brain::begin();
   brain::setMuted(synth::muted());
   power::begin();
+  net::begin();
   Serial.printf("ready, %d phrases (%s), sound %s\n", phrases::count(), phrases::source(),
                 synth::muted() ? "muted (press BOOT to unmute)" : "on");
 }
@@ -244,6 +301,18 @@ void loop() {
   }
   power::tick(now);
   ui::standby::tick();
+  ui::settings::tick(now);
+  net::tick(now);
+  // Rollback protection: a build that runs for a minute, or that the owner has
+  // opened the settings on, is good. Otherwise the bootloader reverts on reset.
+  if (now > 60000) ota::markValid();
+  {
+    const hal::PowerState &ps = power::lastPowerState();
+    bool lowBattery = !ps.usbPresent && ps.batteryPercent >= 0 && ps.batteryPercent < 20;
+    // Chatter may start from standby (it wakes the screen for the phrase), never from off.
+    brain::setChatterAllowed(power::mode() != power::Mode::Off && !lowBattery && !ui::settings::isOpen() && !net::busy());
+    if (brain::speaking()) power::activity(now);  // a phrase keeps (or brings) the screen on
+  }
 
   static uint32_t lastFrame = 0;
   if (now - lastFrame >= 33) {  // ~30 fps model updates; LVGL redraws what changed

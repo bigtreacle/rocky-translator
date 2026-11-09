@@ -1,6 +1,7 @@
 #include "pitch_yin.h"
 
 #include <esp_dsp.h>
+#include <esp_heap_caps.h>
 #include <math.h>
 
 namespace listen {
@@ -14,13 +15,19 @@ PitchResult yinPitch(const float *x, int n, float sampleRate, float fmin, float 
   if (tauMax <= tauMin) return r;
   const int W = n - tauMax;  // correlation window
 
-  static float d[1024];  // difference function, indexed by lag
+  // Scratch in PSRAM, allocated once.
+  static float *d = nullptr, *cmnd = nullptr, *prefix = nullptr;
+  if (!d) {
+    d = (float *)heap_caps_malloc(1024 * sizeof(float), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    cmnd = (float *)heap_caps_malloc(1024 * sizeof(float), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    prefix = (float *)heap_caps_malloc(1025 * sizeof(float), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    if (!d || !cmnd || !prefix) return r;
+  }
   if (tauMax >= 1024) return r;
 
   // Difference function d(tau) = sum (x[i] - x[i+tau])^2
   //                             = E(0..W) + E(tau..tau+W) - 2 * dot(x, x+tau)
   // with E from a prefix sum of squares and the dot product in ESP-DSP assembly.
-  static float prefix[1025];
   prefix[0] = 0;
   for (int i = 0; i < n; i++) prefix[i + 1] = prefix[i] + x[i] * x[i];
   float ea = prefix[W];
@@ -33,7 +40,6 @@ PitchResult yinPitch(const float *x, int n, float sampleRate, float fmin, float 
   // Cumulative mean normalised difference, computed over the searched range.
   float running = 0;
   int count = 0;
-  static float cmnd[1024];
   for (int tau = tauMin; tau <= tauMax; tau++) {
     running += d[tau];
     count++;

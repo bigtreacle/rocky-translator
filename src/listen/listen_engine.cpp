@@ -46,12 +46,13 @@ volatile bool g_active = false;
 volatile uint32_t g_frames = 0;
 volatile uint32_t g_usRead = 0, g_usFft = 0, g_usPitch = 0, g_usTotal = 0;  // last frame, microseconds
 
-// Working buffers (internal RAM; the FFT wants 16-byte alignment)
-__attribute__((aligned(16))) float g_fft[2 * N];
-float g_ring[N];
-float g_window[N];
-int16_t g_pcm[HOP];
-float g_mag[N / 2];
+// Working buffers, allocated in PSRAM at begin() (internal RAM is scarce; the
+// FFT wants 16-byte alignment, which heap_caps_aligned_alloc gives).
+float *g_fft = nullptr;     // 2 * N
+float *g_ring = nullptr;    // N
+float *g_window = nullptr;  // N
+int16_t *g_pcm = nullptr;   // HOP
+float *g_mag = nullptr;     // N / 2
 int g_bandBin[BANDS + 1];
 float g_bandSmooth[BANDS];
 
@@ -285,6 +286,15 @@ bool begin(hal::AudioIn &in, uint32_t sampleRate) {
     Serial.println("listen: FFT init failed");
     return false;
   }
+  g_fft = (float *)heap_caps_aligned_alloc(16, 2 * N * sizeof(float), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  g_ring = (float *)heap_caps_malloc(N * sizeof(float), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  g_window = (float *)heap_caps_malloc(N * sizeof(float), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  g_pcm = (int16_t *)heap_caps_malloc(HOP * sizeof(int16_t), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  g_mag = (float *)heap_caps_malloc((N / 2) * sizeof(float), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  if (!g_fft || !g_ring || !g_window || !g_pcm || !g_mag) {
+    Serial.println("listen: buffer allocation failed");
+    return false;
+  }
   dsps_wind_hann_f32(g_window, N);
   buildBands();
   {  // benchmark the pitch detector once on a synthetic 440 Hz tone
@@ -303,7 +313,7 @@ bool begin(hal::AudioIn &in, uint32_t sampleRate) {
     Serial.printf("listen: benchmark yin %lu us (440 Hz tone -> %.1f Hz, conf %.2f), fft %lu us, flatness %lu us (%.3f)\n",
                   (unsigned long)(t1 - t0), pr.hz, pr.confidence, (unsigned long)(t2 - t1), (unsigned long)(t3 - t2), fl);
   }
-  memset(g_ring, 0, sizeof g_ring);
+  memset(g_ring, 0, N * sizeof(float));
   memset(g_bandSmooth, 0, sizeof g_bandSmooth);
   g_events = xQueueCreate(8, sizeof(Event));
   xTaskCreatePinnedToCore(listenTask, "listen", 16384, nullptr, 10, &g_task, 0);

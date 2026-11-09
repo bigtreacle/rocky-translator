@@ -2,10 +2,10 @@
 
 A handheld desk toy that speaks in chords and listens back, on the Waveshare
 ESP32-S3-Touch-AMOLED-1.8. `rocky-translator-brief.md` is the brief,
-`DESIGN.md` the design and build plan. State: **M0 bring-up, M2 translator
-screen, M3 phrases from JSON, M1 sound, M4 listening and M5 motion and
-power done** (tested on a V2 board, 2026-11-08/09; see the status notes in
-DESIGN.md §14). Pick it up and it greets you, shake it and it complains,
+`DESIGN.md` the design and build plan. State: **all six milestones built and
+tested on a V2 board** (2026-11-08/09; see the status notes in DESIGN.md §14),
+except that no firmware release has been published yet because the project
+has no GitHub repository. Pick it up and it greets you, shake it and it complains,
 turn it face down and it sleeps; it dims after a minute and switches the
 screen off after five. The power button short-press toggles the screen,
 a long press powers off. It listens:
@@ -34,6 +34,44 @@ wired in, these serial commands stand in for them:
     tap   speech   whistle 72   pickup   shake   shift   b 40   reload   phrases   m0
     mute   vol 70   audio   mic   micpeak   listen 0|1   sens 10
     imu   imulog 1   timers 1   standby   off   wake   bright 80
+    settings   chatter 1   wifi   wifistat   update   wifireset   heap
+
+## Settings, Wi-Fi and updates
+
+Hold a finger on the screen for about a second to open the settings: sound,
+volume, bass cut, listening, mic sensitivity, whistle sing-back, idle chatter,
+brightness, Wi-Fi setup, check for updates. Changes apply at once and are
+remembered.
+
+Wi-Fi is only used for updates. "Wi-Fi setup" opens a portal for three
+minutes: join the network **Eridian-Translator** on a phone, open
+192.168.4.1, choose your home Wi-Fi and enter its password. The device then
+checks for a release and turns the radio off. With Wi-Fi saved it checks
+GitHub ninety seconds after power-up and once a day, and installs a newer
+release on its own (a USB build is version `dev` and only updates when you
+ask). The repository it checks is `OTA_REPO` in `platformio.ini`.
+
+### Repositories
+
+The code lives on Simon's own git server
+(`ssh://git@git.bustamantedick.com:2222/simon/rocky-translator.git`), which
+requires sign-in even for downloads, so devices cannot fetch releases from
+it. A public GitHub repository, `bigtreacle/rocky-translator` (the value of
+`OTA_REPO`), is a mirror that exists to build and host releases. `origin`
+pushes to both, through a per-repository deploy key
+(`~/.ssh/rocky_translator_deploy`, SSH alias `github.com-rocky-translator`).
+
+### Cutting a release
+
+    git tag -a v1.0.0 -m "First release"
+    git push --tags
+
+`.github/workflows/release.yml` builds the firmware with the version baked
+in, writes `manifest.json` with the SHA-256, and publishes a GitHub release
+that devices pick up from the "latest release" URL. A tag with a hyphen
+(`v1.0.0-rc1`) is a pre-release, which devices ignore. The two pinned root
+certificates and the rollback behaviour are the same as in planespotter
+(see `src/ota/certs.h`). Phrases on LittleFS are not updated over the air.
 
 ## Writing phrases
 
@@ -84,6 +122,9 @@ amber dot that follows a finger.
     src/listen/           mic -> FFT -> bands, voice activity, YIN pitch; own task on core 0
     src/motion/           pick-up, shake, face-down from accelerometer samples
     src/power/            activity, standby/off timers, brightness, power button, light sleep
+    src/net/              Wi-Fi portal (WiFiManager) and scheduled update checks
+    src/ota/              GitHub Releases updater and pinned roots, ported from planespotter
+    .github/workflows/    build on push; release on tag
     src/phrases/          phrase bank, loaded from data/phrases.json on LittleFS
     tools/check_phrases.py validates the phrase file
     src/main.cpp          boot, wiring, serial simulation of mic and IMU events

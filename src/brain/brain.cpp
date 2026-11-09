@@ -1,6 +1,7 @@
 #include "brain.h"
 
 #include <Arduino.h>
+#include <Preferences.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -27,6 +28,16 @@ uint32_t g_chordStart = 0;
 bool g_inGap = false;
 uint32_t g_lastTapMs = 0;
 int g_mirrorRoot = 0;  // whistle mirror reply, 0 = none pending
+bool g_idleChatter = false;
+bool g_mirrorReply = true;
+bool g_chatterAllowed = true;
+uint32_t g_nextChatter = 0;
+uint32_t g_lastInteraction = 0;
+
+bool g_chatterFast = false;
+void scheduleChatter() {
+  g_nextChatter = g_now + (g_chatterFast ? (uint32_t)random(60000, 90001) : (uint32_t)random(180000, 480001));
+}
 uint32_t g_lastShift = 0;
 float g_floor[24];
 
@@ -202,6 +213,13 @@ void advanceSpeaking() {
 }  // namespace
 
 void begin() {
+  Preferences p;
+  p.begin("rocky", true);
+  g_idleChatter = p.getBool("chatter", false);
+  g_mirrorReply = p.getBool("mirror", true);
+  p.end();
+  g_now = millis();
+  scheduleChatter();
   for (int i = 0; i < 24; i++) {
     g_floor[i] = 0.06f;
     g_model.bands[i] = 0.05f;
@@ -218,6 +236,14 @@ void tick(uint32_t nowMs) {
     case State::Listening:
       if (!listen::running() || !listen::enabled()) idleBands();
       else micBands();  // keeps the last frame while the mic is gated during playback cooldown
+      // Chatter keeps the screen awake, so it stops 30 minutes after the last real
+      // interaction and the device can go to sleep.
+      if (g_idleChatter && g_chatterAllowed && g_now >= g_nextChatter && !listen::active() &&
+          g_now - g_lastInteraction > (g_chatterFast ? 20000u : 60000u) &&
+          (g_chatterFast || g_now - g_lastInteraction < 30u * 60000u)) {
+        startPhrase(phrases::pick(phrases::Trigger::Idle, nullptr));
+        scheduleChatter();
+      }
       break;
     case State::Receiving:
       if (!listen::running() || !listen::enabled()) speechBands();
@@ -226,7 +252,7 @@ void tick(uint32_t nowMs) {
     case State::NoteShown:
       decayBands(0.05f, 0.1f);
       if (g_now - g_stateSince > 700) {
-        if (g_mirrorRoot) startMirror(g_mirrorRoot);
+        if (g_mirrorRoot && g_mirrorReply) startMirror(g_mirrorRoot);
         else startPhrase(phrases::pick(phrases::Trigger::HeardWhistle, nullptr));
       }
       break;
@@ -248,6 +274,7 @@ void tick(uint32_t nowMs) {
 }
 
 void onTap() {
+  g_lastInteraction = g_now;
   Serial.printf("brain: tap (%s)\n", stateName());
   if (g_state == State::Speaking) return;  // let it finish
   const phrases::Phrase *next = nullptr;
@@ -259,6 +286,7 @@ void onTap() {
 }
 
 void onSpeechStart() {
+  g_lastInteraction = g_now;
   if (g_state == State::Speaking || g_state == State::Translating) return;
   g_model.status = ui::Status::Receiving;
   g_model.note[0] = 0;
@@ -282,6 +310,7 @@ void onWhistle(int midi, int cents) {
 }
 
 void onPickedUp() {
+  g_lastInteraction = g_now;
   if (g_state == State::Speaking || g_state == State::Translating) return;
   startPhrase(phrases::pick(phrases::Trigger::PickedUp, nullptr));
 }
@@ -292,6 +321,30 @@ void onShaken() {
 }
 
 void setMuted(bool muted) { g_model.muted = muted; }
+
+void setIdleChatter(bool on) {
+  g_idleChatter = on;
+  if (on) scheduleChatter();
+  Preferences p;
+  p.begin("rocky", false);
+  p.putBool("chatter", on);
+  p.end();
+}
+bool idleChatter() { return g_idleChatter; }
+void setChatterTestCadence(bool fast) {
+  g_chatterFast = fast;
+  scheduleChatter();
+}
+void setMirrorReply(bool on) {
+  g_mirrorReply = on;
+  Preferences p;
+  p.begin("rocky", false);
+  p.putBool("mirror", on);
+  p.end();
+}
+bool mirrorReply() { return g_mirrorReply; }
+void setChatterAllowed(bool allowed) { g_chatterAllowed = allowed; }
+bool speaking() { return g_state == State::Speaking || g_state == State::Translating; }
 
 void setBattery(int percent, bool charging) {
   g_model.batteryPercent = percent;

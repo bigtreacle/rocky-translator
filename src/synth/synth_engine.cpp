@@ -230,6 +230,9 @@ void setVolume(uint8_t percent) {
   p.end();
 }
 
+uint8_t volume() { return g_volume; }
+bool bassCut() { return g_bassCut; }
+
 void setBassCut(bool on) {
   g_bassCut = on;
   Preferences p;

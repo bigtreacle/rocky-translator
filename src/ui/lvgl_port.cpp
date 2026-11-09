@@ -63,6 +63,7 @@ bool lvglBegin(hal::Display &display, hal::Touch &touch) {
   lv_indev_t *indev = lv_indev_create();
   lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
   lv_indev_set_read_cb(indev, touchReadCb);
+  lv_indev_set_long_press_time(indev, 800);
   return true;
 }
 

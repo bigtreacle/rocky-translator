@@ -18,7 +18,9 @@ bool playing();  // any voice sounding (including release tails)
 void setMuted(bool muted);
 bool muted();
 void setVolume(uint8_t percent);  // codec volume
+uint8_t volume();
 void setBassCut(bool on);
+bool bassCut();
 
 // Diagnostics for the serial console.
 uint32_t blocksRendered();

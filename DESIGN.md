@@ -738,6 +738,48 @@ replies, which is charming for now. Serial: `imu`, `imulog 1`, `timers 1`
 
 **M6 polish.** Settings screen, idle chatter, OTA with a tagged pre-release.
 
+Status 2026-11-09: built and tested on the board, apart from a real release
+(no GitHub repository exists yet). `src/ui/settings_screen.cpp`: long press
+(0.8 s) opens a scrollable list between the rounded corners: sound, volume,
+bass cut, listening, mic sensitivity, sing-back of whistles, idle chatter,
+brightness, Wi-Fi setup, check for updates, version; live-applied, saved per
+module in NVS, auto-closes after 20 s. Idle chatter (brain): an `idle`
+phrase every 3 to 8 min while active, nothing for a minute, mic quiet, not
+on a low battery, settings closed, radio idle. OTA (`src/ota/`, ported from
+planespotter with the same pinned roots and rollback rules; `OTA_REPO`
+build flag names the GitHub repository) and `src/net/`: Wi-Fi is off except
+during setup or a check; WiFiManager's portal ("Eridian-Translator",
+192.168.4.1, 3 min) from the settings row; with credentials saved, a check
+90 s after boot and then daily, silent unless a release is newer; a fresh
+setup goes straight into a check. Verified: portal joined the home network,
+TLS to github.com succeeded through the pinned roots, manifest 404 reported
+as "No release published yet", radio off afterwards. The release workflow
+(`.github/workflows/release.yml`, `scripts/make_manifest.py`) is adapted
+for one variant, `eridian-amoled18.bin`.
+
+Memory lesson: Wi-Fi would not initialise with 29 KB of internal heap free.
+LVGL's 96 KB pool (`LV_MEM_POOL_ALLOC` -> PSRAM) and the listening engine's
+~30 KB of buffers now live in PSRAM; static internal RAM fell from 193 KB to
+63 KB and the heap sits around 125 KB with the radio up. The FFT from PSRAM
+costs 1.7 ms instead of 0.9 ms, which is fine.
+
+Soak (2026-11-09, speaker on, chatter on a 60-90 s bench cadence, empty
+room, 10 min): 7 idle phrases, each waking the screen from standby; zero
+speech or whistle events within 30 s of any of them (the one speech event
+came 34 s after the nearest phrase, a real sound); heap flat at 158 KB; no
+reboots. Two bugs found on the way: (1) the Wi-Fi portal's 3-minute timeout
+crashed the UI core, because WiFiManager had already torn the portal down
+when our own timeout called `stopConfigPortal()` again; WiFiManager now owns
+the timeout. (2) Chatter was only allowed in the Active power mode, which
+ends after 60 s, so it could never fire at the real 3-8 min cadence; it may
+now start from standby (waking the screen for the phrase) and stops 30 min
+after the last real interaction so the device can still sleep.
+
+Repositories: code on Simon's Gitea (`git.bustamantedick.com`, sign-in
+required, so devices cannot fetch from it); `bigtreacle/rocky-translator` on
+GitHub is a public mirror that builds and hosts releases; `origin` pushes to
+both.
+
 ## 15. Risks and open questions
 
 | Risk | Mitigation |

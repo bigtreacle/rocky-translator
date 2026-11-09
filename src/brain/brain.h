@@ -23,6 +23,16 @@ void onShaken();
 void setBattery(int percent, bool charging);
 void setMuted(bool muted);
 
+// Settings (saved in NVS by the brain)
+void setIdleChatter(bool on);
+void setChatterTestCadence(bool fast);  // bench only: every 60-90 s instead of 3-8 min
+bool idleChatter();
+void setMirrorReply(bool on);
+bool mirrorReply();
+// The power manager says when chatter is allowed (screen active, not on a low battery).
+void setChatterAllowed(bool allowed);
+bool speaking();  // a phrase is sounding or typing
+
 const ui::UiModel &model();
 const char *stateName();
 

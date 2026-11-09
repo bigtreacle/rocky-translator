@@ -1,0 +1,28 @@
+# Compiles the firmware on every push and pull request, so a broken commit is
+# caught before anyone tags a release.
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # The ESP32-S3 toolchain is large; without this cache every run downloads it.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio/packages
+            ~/.platformio/platforms
+            ~/.platformio/.cache
+          key: platformio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+      - run: pip install platformio
+      - run: python3 tools/check_phrases.py
+      - run: pio run -e amoled18

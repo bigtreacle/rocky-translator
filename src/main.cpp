@@ -12,6 +12,8 @@
 //   listen 0|1     microphone listening off/on   sens <6-24>  dB above the noise floor
 //   mic            listening diagnostics (level, floor, pitch, flatness)
 //   vol <0-100>    codec volume             audio      synth diagnostics
+//   imu            accelerometer and gesture state      timers 1|0  5 s / 15 s test timers
+//   standby | off | wake   force the power mode          bright <20-100>  brightness cap (saved)
 //   m0             the M0 hardware test screen (reset to come back)
 //
 // Sound: the BOOT side button toggles mute. The device boots muted the first
@@ -21,19 +23,30 @@
 
 #include "brain/brain.h"
 #include "listen/listen_engine.h"
+#include "motion/gestures.h"
 #include "phrases/phrase_bank.h"
+#include "power/power_manager.h"
 #include "synth/synth_engine.h"
 #include "hal/board.h"
 #include "ui/bringup_screen.h"
 #include "ui/lvgl_port.h"
+#include "ui/standby_screen.h"
 #include "ui/translator_screen.h"
 #include "version.h"
 
 static hal::BoardInfo g_info;
 static bool g_powerOk = false;
 static uint32_t g_speechEndAt = 0;
+static bool g_imuLog = false;
 
-static void onTap() { brain::onTap(); }
+static void onTap() {
+  if (power::mode() != power::Mode::Active) {  // first touch only wakes
+    power::wake(millis());
+    return;
+  }
+  power::activity(millis());
+  brain::onTap();
+}
 
 static void toggleMute() {
   synth::setMuted(!synth::muted());
@@ -101,6 +114,16 @@ static void handleSerial() {
         if (sscanf(line, "creg %x %x", &reg, &val) == 2) Serial.printf("codec reg %02X <- %02X: %s\n", reg, val, hal::debugCodecWrite(reg, val) ? "ok" : "nack");
       }
       else if (!strcmp(cmd, "rails")) hal::debugRails(Serial);
+      else if (!strcmp(cmd, "imu")) {
+        Serial.printf("imu |a| %.2f g, %s, %s, mode %d\n", motion::magnitude(), motion::isStill() ? "still" : "moving",
+                      motion::isFaceDown() ? "FACE DOWN" : "face up", (int)power::mode());
+      }
+      else if (!strcmp(cmd, "imulog")) { g_imuLog = arg != 0; Serial.printf("imu log %s\n", g_imuLog ? "on" : "off"); }
+      else if (!strcmp(cmd, "timers")) { power::setTestTimers(arg != 0); Serial.printf("test timers %s\n", arg ? "on (5 s / 15 s)" : "off"); }
+      else if (!strcmp(cmd, "standby")) power::standby(millis());
+      else if (!strcmp(cmd, "off")) power::off(millis());
+      else if (!strcmp(cmd, "wake")) power::wake(millis());
+      else if (!strcmp(cmd, "bright")) { power::setBrightnessCap((uint8_t)arg); Serial.printf("brightness cap %u\n", power::brightnessCap()); }
       else if (!strcmp(cmd, "reload")) Serial.printf("phrases: %d (%s)\n", phrases::reload(), phrases::source());
       else if (!strcmp(cmd, "phrases")) {
         for (int i = 0; i < phrases::count(); i++) {
@@ -141,11 +164,14 @@ void setup() {
   if (displayOk && ui::lvglBegin(hal::display(), hal::touch())) {
     ui::translator::create();
     ui::translator::setTapHandler(onTap);
+    ui::standby::create();
   }
+  motion::begin();
   if (!LittleFS.begin(false)) Serial.println("littlefs: mount failed (run: pio run -t uploadfs)");
   phrases::begin();
   brain::begin();
   brain::setMuted(synth::muted());
+  power::begin();
   Serial.printf("ready, %d phrases (%s), sound %s\n", phrases::count(), phrases::source(),
                 synth::muted() ? "muted (press BOOT to unmute)" : "on");
 }
@@ -161,7 +187,7 @@ void loop() {
   listen::Event ev;
   while (listen::pollEvent(ev)) {
     switch (ev.type) {
-      case listen::EventType::SpeechStart: Serial.println("listen: speech start"); brain::onSpeechStart(); break;
+      case listen::EventType::SpeechStart: Serial.println("listen: speech start"); power::activity(now); brain::onSpeechStart(); break;
       case listen::EventType::SpeechEnd: Serial.println("listen: speech end"); brain::onSpeechEnd(); break;
       case listen::EventType::Whistle:
         Serial.printf("listen: whistle midi %d %+d cents\n", ev.midi, ev.cents);
@@ -170,12 +196,54 @@ void loop() {
     }
   }
 
-  static uint32_t lastPower = 0;
-  if (g_powerOk && now - lastPower >= 5000) {
-    lastPower = now;
-    hal::PowerState ps = hal::power().read();
-    brain::setBattery(ps.batteryPercent, ps.charging || ps.usbPresent);
+  // IMU gestures, ~50 Hz
+  static uint32_t lastImu = 0;
+  if (now - lastImu >= 20) {
+    lastImu = now;
+    hal::Accel a;
+    if (hal::motion().read(a)) {
+      static uint32_t lastLog = 0;
+      if (g_imuLog && now - lastLog >= 200) {
+        lastLog = now;
+        motion::Debug d = motion::debug(now);
+        Serial.printf("imu a=(%+.2f %+.2f %+.2f) |a|=%.2f hp=%.2f var=%.4f %s%lums hits=%d\n", a.x, a.y, a.z, d.mag,
+                      d.hpMag, d.magVar, d.still ? "still " : "moving ", (unsigned long)d.stillMs, d.hits);
+      }
+      switch (motion::update(a, now)) {
+        case motion::Gesture::PickedUp:
+          Serial.println("motion: picked up");
+          power::activity(now);
+          if (power::mode() == power::Mode::Active) brain::onPickedUp();
+          break;
+        case motion::Gesture::Shaken:
+          Serial.println("motion: shaken");
+          power::activity(now);
+          if (power::mode() == power::Mode::Active) brain::onShaken();
+          break;
+        case motion::Gesture::FaceDown:
+          Serial.println("motion: face down");
+          power::offFaceDown(now);
+          break;
+        case motion::Gesture::FaceUp:
+          Serial.println("motion: face up");
+          power::faceUp(now);
+          break;
+        default: break;
+      }
+    }
   }
+  // Power button, 20 Hz
+  static uint32_t lastBtn = 0;
+  if (g_powerOk && now - lastBtn >= 50) {
+    lastBtn = now;
+    hal::ButtonEvent e = hal::power().pollButton();
+    if (e != hal::ButtonEvent::None) {
+      Serial.printf("power: button %s\n", e == hal::ButtonEvent::Long ? "long" : "short");
+      power::onButton(e, now);
+    }
+  }
+  power::tick(now);
+  ui::standby::tick();
 
   static uint32_t lastFrame = 0;
   if (now - lastFrame >= 33) {  // ~30 fps model updates; LVGL redraws what changed

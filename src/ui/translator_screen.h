@@ -12,5 +12,6 @@ void startTyping(const char *text);    // types text out character by character
 bool typingDone();
 void shiftForBurnIn();                 // nudge the whole tree a few pixels
 void setTapHandler(void (*fn)());      // a tap anywhere on the screen
+void setVisible(bool on);              // hidden during standby and off
 
 }  // namespace ui::translator

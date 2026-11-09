@@ -713,6 +713,29 @@ Serial: `mic`, `micpeak`, `mict`, `listen 0|1`, `sens <6-24>`, `gate 0|1`
 with a ruler against the bezel; standby and off timers; battery %; power
 button short/long.
 
+Status 2026-11-09: done on the board, with two caveats. `src/motion/gestures.cpp`
+(board-independent, fed 50 Hz samples from `loop()`): pick-up = rested 2 s
+(variance of |a| below 0.0015 g², ~0.4 s time constant) then a 0.25 g
+deviation or 25° tilt; shake = three hits of high-passed acceleration above
+1.2 g within 800 ms that **alternate direction along one axis** (a lift or a
+flip gives one-signed hits and does not count; the first version counted
+flips as shakes); face-down = z above +0.8 g for 1 s (screen-up reads
+z = -1 on this board), face-up = z below -0.5 g for 300 ms. Verified:
+pick-up plays the greeting, shake the alarmed phrase, face-down turns the
+screen off, face-up and the power button (short) wake it, power button
+short also turns it off. `src/power/power_manager.cpp`: Active -> Standby
+(dim dot drifting, console hidden; 60 s on USB, 30 s on battery) -> Off
+(panel off, mic paused; 5 min / 2 min); any touch, sound in standby,
+gesture or button is activity; brightness cap saved (`bright`), 60 % cap
+on battery; long press = PMIC shutdown. Caveats: (1) face-down now holds
+the off state until face-up/touch/button (first version let a shake wake
+it) and that exact path has not been re-tested; (2) light sleep while off
+on battery (250 ms timer wake, touch and BOOT as GPIO wake) is coded but
+untested, there is no battery yet; on USB the CPU stays awake so serial
+and flashing keep working. Handling noise near the mic triggers speech
+replies, which is charming for now. Serial: `imu`, `imulog 1`, `timers 1`
+(5 s / 15 s), `standby`, `off`, `wake`, `bright <20-100>`.
+
 **M6 polish.** Settings screen, idle chatter, OTA with a tagged pre-release.
 
 ## 15. Risks and open questions

@@ -26,6 +26,11 @@ struct BoardInfo {
 bool boardBegin(BoardInfo &info);
 
 bool bootButtonPressed();  // the BOOT side button, held right now
+
+enum class WakeCause : uint8_t { Timer, Touch, Button, Other };
+// Light sleep for up to `ms`, waking early on a touch or the BOOT button. The
+// caller has already turned the screen off and paused audio. Returns why we woke.
+WakeCause lightSleep(uint32_t ms);
 void debugAudio(Print &out);  // amp pin read-back and codec registers, for the serial console
 bool debugCodecWrite(uint8_t reg, uint8_t value);  // poke an ES8311 register (diagnostics only)
 void debugRails(Print &out);  // PMIC rail states

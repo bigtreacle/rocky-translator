@@ -31,6 +31,7 @@ uint32_t g_rate = 22050;
 TaskHandle_t g_task = nullptr;
 QueueHandle_t g_events = nullptr;
 volatile bool g_enabled = true;
+volatile bool g_paused = false;
 volatile int g_sensDb = 10;
 volatile bool g_running = false;
 
@@ -157,7 +158,7 @@ void listenTask(void *) {
     uint32_t now = millis();
     if (synth::playing()) lastSynthMs = now;
     bool selfNoise = g_gate && (synth::playing() || (now - lastSynthMs) < SELF_COOLDOWN_MS);
-    if (!g_enabled || selfNoise) {
+    if (!g_enabled || g_paused || selfNoise) {
       loudBits = 0;
       below = 0;
       loudRun = 0;
@@ -310,6 +311,8 @@ bool begin(hal::AudioIn &in, uint32_t sampleRate) {
   Serial.printf("listen: running, %s, sensitivity %d dB\n", g_enabled ? "enabled" : "disabled", (int)g_sensDb);
   return true;
 }
+
+void pause(bool paused) { g_paused = paused; }
 
 void setEnabled(bool on) {
   g_enabled = on;

@@ -231,4 +231,8 @@ void shiftForBurnIn() {
 
 void setTapHandler(void (*fn)()) { g_tap = fn; }
 
+void setVisible(bool on) {
+  if (g_root) lv_obj_set_hidden(g_root, !on);
+}
+
 }  // namespace ui::translator

@@ -3,8 +3,12 @@
 A handheld desk toy that speaks in chords and listens back, on the Waveshare
 ESP32-S3-Touch-AMOLED-1.8. `rocky-translator-brief.md` is the brief,
 `DESIGN.md` the design and build plan. State: **M0 bring-up, M2 translator
-screen, M3 phrases from JSON, M1 sound and M4 listening done** (all tested on
-a V2 board on 2026-11-08; see the status notes in DESIGN.md §14). It listens:
+screen, M3 phrases from JSON, M1 sound, M4 listening and M5 motion and
+power done** (tested on a V2 board, 2026-11-08/09; see the status notes in
+DESIGN.md §14). Pick it up and it greets you, shake it and it complains,
+turn it face down and it sleeps; it dims after a minute and switches the
+screen off after five. The power button short-press toggles the screen,
+a long press powers off. It listens:
 talk to it and it replies; whistle a note and it shows the note and sings it
 back. Sound (M1) works: a short press of the
 BOOT side button toggles the speaker, the setting is remembered, and the
@@ -29,6 +33,7 @@ wired in, these serial commands stand in for them:
 
     tap   speech   whistle 72   pickup   shake   shift   b 40   reload   phrases   m0
     mute   vol 70   audio   mic   micpeak   listen 0|1   sens 10
+    imu   imulog 1   timers 1   standby   off   wake   bright 80
 
 ## Writing phrases
 
@@ -77,6 +82,8 @@ amber dot that follows a finger.
     src/brain/            the interaction state machine; owns the conversation
     src/synth/            chord synth: voices, envelopes, limiter, own task on core 0
     src/listen/           mic -> FFT -> bands, voice activity, YIN pitch; own task on core 0
+    src/motion/           pick-up, shake, face-down from accelerometer samples
+    src/power/            activity, standby/off timers, brightness, power button, light sleep
     src/phrases/          phrase bank, loaded from data/phrases.json on LittleFS
     tools/check_phrases.py validates the phrase file
     src/main.cpp          boot, wiring, serial simulation of mic and IMU events

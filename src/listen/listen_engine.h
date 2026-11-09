@@ -18,6 +18,7 @@ struct Event {
 
 bool begin(hal::AudioIn &in, uint32_t sampleRate);  // false if the mic is unavailable
 void setEnabled(bool on);                            // listening on/off (saved)
+void pause(bool paused);                             // temporary, for screen-off; not saved
 bool enabled();
 void setSensitivityDb(int db);                       // threshold above the noise floor, 6..24 (saved)
 int sensitivityDb();

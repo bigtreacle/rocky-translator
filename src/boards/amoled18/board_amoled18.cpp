@@ -8,6 +8,8 @@
 #include <Arduino_GFX_Library.h>
 #include <ESP_I2S.h>
 #include <Wire.h>
+#include <driver/gpio.h>
+#include <esp_sleep.h>
 #define XPOWERS_CHIP_AXP2101
 #include <XPowersLib.h>
 #include <SensorQMI8658.hpp>
@@ -351,8 +353,24 @@ class Amoled18Power : public hal::Power {
     pmu_.enableBattVoltageMeasure();
     pmu_.enableSystemVoltageMeasure();
     pmu_.enableVbusVoltageMeasure();
+    // Power key: short press and long press as IRQs we poll; a very long hold
+    // (6 s, PMIC default) still powers off in hardware as a last resort.
+    pmu_.disableIRQ(XPOWERS_AXP2101_ALL_IRQ);
+    pmu_.clearIrqStatus();
+    pmu_.enableIRQ(XPOWERS_AXP2101_PKEY_SHORT_IRQ | XPOWERS_AXP2101_PKEY_LONG_IRQ);
     ok_ = true;
     return true;
+  }
+  hal::ButtonEvent pollButton() override {
+    if (!ok_) return hal::ButtonEvent::None;
+    // IRQ line is on the expander (EXIO5, active low); reading the status
+    // registers directly is cheap enough at 20 Hz and needs no expander read.
+    pmu_.getIrqStatus();
+    hal::ButtonEvent e = hal::ButtonEvent::None;
+    if (pmu_.isPekeyLongPressIrq()) e = hal::ButtonEvent::Long;
+    else if (pmu_.isPekeyShortPressIrq()) e = hal::ButtonEvent::Short;
+    pmu_.clearIrqStatus();
+    return e;
   }
   hal::PowerState read() override {
     hal::PowerState s;
@@ -426,6 +444,23 @@ bool boardBegin(BoardInfo &info) {
 }
 
 bool bootButtonPressed() { return digitalRead(pins::BOOT_BUTTON) == LOW; }
+
+WakeCause lightSleep(uint32_t ms) {
+  // Wake on: timer, touch INT low (GPIO 21), BOOT low (GPIO 0). The IMU and PMIC
+  // interrupts live on the I/O expander and cannot wake us; the caller polls
+  // them on each timer wake instead.
+  esp_sleep_enable_timer_wakeup((uint64_t)ms * 1000ULL);
+  gpio_wakeup_enable((gpio_num_t)pins::TP_INT, GPIO_INTR_LOW_LEVEL);
+  gpio_wakeup_enable((gpio_num_t)pins::BOOT_BUTTON, GPIO_INTR_LOW_LEVEL);
+  esp_sleep_enable_gpio_wakeup();
+  esp_light_sleep_start();
+  esp_sleep_wakeup_cause_t c = esp_sleep_get_wakeup_cause();
+  gpio_wakeup_disable((gpio_num_t)pins::TP_INT);
+  gpio_wakeup_disable((gpio_num_t)pins::BOOT_BUTTON);
+  if (c == ESP_SLEEP_WAKEUP_TIMER) return WakeCause::Timer;
+  if (c == ESP_SLEEP_WAKEUP_GPIO) return digitalRead(pins::BOOT_BUTTON) == LOW ? WakeCause::Button : WakeCause::Touch;
+  return WakeCause::Other;
+}
 
 bool debugCodecWrite(uint8_t reg, uint8_t value) { return i2cWriteReg(pins::ADDR_CODEC, reg, value); }
 

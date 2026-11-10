@@ -53,8 +53,7 @@ ask). The repository it checks is `OTA_REPO` in `platformio.ini`.
 
 ### Repositories
 
-The code lives on Simon's own git server
-(`ssh://git@git.bustamantedick.com:2222/simon/rocky-translator.git`), which
+The code lives on Simon's own git server which
 requires sign-in even for downloads, so devices cannot fetch releases from
 it. A public GitHub repository, `bigtreacle/rocky-translator` (the value of
 `OTA_REPO`), is a mirror that exists to build and host releases. `origin`
